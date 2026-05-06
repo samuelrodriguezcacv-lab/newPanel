@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+@source '../**/*.jsx';
+
+@theme {
+  --color-primary: #166534;
+  --color-primary-hover: #15803d;
+  --color-primary-active: #14532d;
+
+  --color-background: #f9fafb;
+  --color-card: #ffffff;
+  --color-border: #e5e7eb;
+
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --font-sans: 'Raleway', sans-serif;
+}

@@ -1,0 +1,14 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TestSelloController;
+use Inertia\Inertia;
+
+Route::get('/', function () {
+    return Inertia::render('Home');
+});
+
+Route::get('/test', function () {
+    return Inertia::render('Test');
+});
+Route::get('/test-sello', [TestSelloController::class, 'test']);
