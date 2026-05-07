@@ -1,10 +1,12 @@
 import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
-import { Home, Stamp, Settings, Folder } from "lucide-react"
+import { Link } from '@inertiajs/react'
+import { Home, Stamp, Settings, Folder,ClipboardCheck } from "lucide-react"
+import { usePage } from '@inertiajs/react'
 
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
-
+  const { url } = usePage()
   return (
     <aside className="
       fixed left-4 top-4 bottom-4
@@ -25,7 +27,12 @@ export default function Sidebar() {
       <div className="space-y-2">
 
         {/* ITEM NORMAL */}
-        <NavItem icon={Home} label="Dashboard" />
+        <NavItem
+          icon={Home}
+          label="Dashboard"
+          href="/sellos/dashboard-sellos"
+          active={url === '/sellos/dashboard-sellos'}
+        />
 
         {/* ITEM CON SUBMENU */}
         <div>
@@ -57,8 +64,20 @@ export default function Sidebar() {
           {openTools && (
             <div className="ml-6 mt-2 space-y-2 border-l border-gray-200 pl-3">
 
-              <NavItem icon={Stamp} label="Generar Sellos" />
-          
+               <NavItem
+                icon={ClipboardCheck}
+                label="Tareas de Sellos"
+               href="/sellos/sellos-tareas"
+              active={url === '/sellos/sellos-tareas'}
+              />
+
+              <NavItem
+                icon={Stamp}
+                label="Generar Sellos"
+                href="/sellos/generar-sellos"
+                active={url === '/sellos/generar-sellos'}
+              />
+                    
 
             </div>
           )}

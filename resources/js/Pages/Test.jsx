@@ -2,6 +2,7 @@ import Button from '../Components/atoms/Button.jsx';
 import Layout from "../Template/LayaoutNav.jsx";
 import Card from "../Components/atoms/Card.jsx"
 import Input from '../Components/atoms/Input.jsx';
+import { TaskHeader } from '../Components/molecules/TaskHeader.jsx';
 export default function Test() {
   return (
     <div className="space-y-4">
@@ -20,7 +21,7 @@ export default function Test() {
     </Layout> */}
 
 
-     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+     {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card
               type="primary"
               title="Total de Tareas"
@@ -76,7 +77,9 @@ export default function Test() {
               disabled
             />
           </div>
-        </section>
+        </section> */}
+
+        <TaskHeader/>
     </div>
   )
 }

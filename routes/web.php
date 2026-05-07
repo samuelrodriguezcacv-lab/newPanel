@@ -8,8 +8,12 @@ Route::get('/', function () {
     return Inertia::render('Home');
 });
 
-Route::get('/dashboard-sellos', function () {
-    return Inertia::render('DashboardSellos');
+Route::get('/sellos/dashboard-sellos', function () {
+    return Inertia::render('Sellos/DashboardSellos');
+});
+
+Route::get('/sellos/sellos-tareas', function () {
+    return Inertia::render('Sellos/Tareas/SellosTareas');
 });
 
 Route::get('/test', function () {

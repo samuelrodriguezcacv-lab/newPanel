@@ -1,5 +1,5 @@
-import Layout from "../Template/LayaoutNav.jsx";
-import Card from "../Components/atoms/Card.jsx";
+import Layout from "../../Template/LayaoutNav.jsx";
+import Card from "../../Components/atoms/Card.jsx";
 
 export default function DashboardSellos() {
   return (
@@ -15,7 +15,7 @@ export default function DashboardSellos() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-4  md:grid-cols-2 xl:grid-cols-2">
           <Card
             type="primary"
             title="Total de Sellos"
@@ -25,22 +25,28 @@ export default function DashboardSellos() {
 
           <Card
             type="secondary"
-            title="Sellos Activos"
-            value="18"
+            title="Total de Pedidos"
+            value="203"
             description="Actualmente en uso"
           />
 
           <Card
             type="secondary"
-            title="Sellos Pendientes"
-            value="4"
+            title="Ultima Tarea"
+            value="#1485"
             description="Pendientes de revisión"
           />
 
           <Card
             type="secondary"
-            title="Sellos Inactivos"
-            value="2"
+            title="Sellos Manuales"
+            value="12"
+            description="Fuera de uso"
+          />
+            <Card
+            type="secondary"
+            title="Sellos Automáticos"
+            value="12"
             description="Fuera de uso"
           />
         </div>

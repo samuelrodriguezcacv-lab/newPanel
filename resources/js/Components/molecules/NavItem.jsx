@@ -1,15 +1,17 @@
-export function NavItem({ icon: Icon, label, onClick, active }) {
+import { Link } from '@inertiajs/react'
+
+export function NavItem({ icon: Icon, label, href, active }) {
   return (
-    <div
-      onClick={onClick}
+    <Link
+      href={href}
       className="
         relative group flex items-center gap-3
-        px-4 py-3 rounded-xl cursor-pointer
+        px-4 py-3 rounded-xl
         hover:bg-gray-50 transition
       "
     >
-      
-      {/* barra izquierda */}
+
+      {/* barra verde izquierda */}
       <div className={`
         absolute left-0 top-2 bottom-2
         w-1 bg-green-600
@@ -26,6 +28,6 @@ export function NavItem({ icon: Icon, label, onClick, active }) {
         {label}
       </span>
 
-    </div>
+    </Link>
   )
 }

@@ -14,7 +14,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card
             type="primary"
             title="Total de Tareas"

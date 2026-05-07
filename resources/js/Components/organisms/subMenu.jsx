@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
-import { Folder } from "lucide-react"
+import { Folder, ClipboardCheck } from "lucide-react"
 
+<ClipboardCheck />
 export default function Sidebar() {
   const [open, setOpen] = useState(false)
 
