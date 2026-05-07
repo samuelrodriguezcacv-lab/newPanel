@@ -42,9 +42,9 @@ export default function Sidebar() {
             "
           >
             <div className="flex items-center gap-3">
-              <Folder size={18} />
+              <Stamp size={18} />
               <span className="text-sm font-medium text-gray-800">
-                Herramientas
+                Sellos
               </span>
             </div>
 
@@ -57,7 +57,7 @@ export default function Sidebar() {
           {openTools && (
             <div className="ml-6 mt-2 space-y-2 border-l border-gray-200 pl-3">
 
-              <NavItem icon={Stamp} label="Sellos" />
+              <NavItem icon={Stamp} label="Generar Sellos" />
           
 
             </div>
