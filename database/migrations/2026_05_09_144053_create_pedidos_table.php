@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::table('sellos', function (Blueprint $table) {
-    $table->string('nombre_normalizado');
-    $table->string('apellido1_normalizado');
-    $table->string('apellido2_normalizado')->nullable();
-});
+      Schema::create('pedidos', function (Blueprint $table) {
+                $table->id();
+                $table->integer('numero_pedido')->unique();
+                $table->date('fecha');
+                $table->timestamps();
+            });
     }
 
     /**
@@ -23,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sellos', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('pedidos');
     }
 };

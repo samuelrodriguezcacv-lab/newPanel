@@ -9,21 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-   public function up(): void
-{
-    Schema::create('tareas', function (Blueprint $table) {
+    public function up(): void
+    {
+        Schema::create('tarea_sello', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('pedido_id')->constrained('pedidos')->cascadeOnDelete();
-        $table->string('numero_tarea')->unique();
-        $table->string('origen')->nullable(); // provincia, delegación, etc.
+        $table->foreignId('tarea_id')->constrained('tareas')->onDelete('cascade');
+        $table->foreignId('sello_id')->constrained('All_sellos')->onDelete('cascade');
         $table->timestamps();
-    });
-}
+});
+    }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('tareas');
+        //
     }
 };

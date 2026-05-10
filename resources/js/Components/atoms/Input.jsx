@@ -16,7 +16,7 @@ export default function Input({
       placeholder={placeholder}
       disabled={disabled}
       className={`
-        w-full
+       
         rounded-xl
         border
         border-slate-200

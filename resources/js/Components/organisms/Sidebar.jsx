@@ -1,8 +1,7 @@
 import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
-import { Link } from '@inertiajs/react'
-import { Home, Stamp, Settings, Folder,ClipboardCheck } from "lucide-react"
-import { usePage } from '@inertiajs/react'
+import { Link, usePage } from '@inertiajs/react'
+import { Home, Stamp, Settings, Folder,ClipboardCheck, Box,ClipboardList, SquareCheckBig} from "lucide-react" 
 
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
@@ -63,21 +62,60 @@ export default function Sidebar() {
           {/* SUBMENU */}
           {openTools && (
             <div className="ml-6 mt-2 space-y-2 border-l border-gray-200 pl-3">
+                 <NavItem
+                icon={Home}
+                label="Dashboard"
+                href="/sellos/dashboard-sellos"
+                active={url === '/sellos/Dashboard/DashboardSellos'}
+              />
+
+             
+             Pedidos
+               <NavItem
+                icon={Box}
+                label="Nuevo Pedidos"
+               href="/sellos/pedidos/nuevo-pedido"
+              active={url === '/sellos/pedidos/nuevo-pedido'}
+              />
 
                <NavItem
-                icon={ClipboardCheck}
-                label="Tareas de Sellos"
-               href="/sellos/sellos-tareas"
-              active={url === '/sellos/sellos-tareas'}
+                  icon={ClipboardList}
+                  label="Lista de Pedidos"
+                  href="/sellos/pedidos"
+                  active={url === '/sellos/pedidos'}
               />
 
+          
+          <div className="flex"> <SquareCheckBig/>  Tareas</div>
+              
               <NavItem
-                icon={Stamp}
-                label="Generar Sellos"
-                href="/sellos/generar-sellos"
-                active={url === '/sellos/generar-sellos'}
-              />
-                    
+                  icon={SquareCheckBig}
+                  label="Lista de Tareas"
+                  href="/sellos/tareas"
+                  active={url === '/sellos/tareas'}
+              />      
+
+            Gestión de Sellos
+               <NavItem
+                  icon={Stamp}
+                  label="Todos los Sellos"
+                  href="/sellos/gestion/todos"
+                  active={url === '/sellos/gestion/todos'}
+              /> 
+
+                <NavItem
+                  icon={SquareCheckBig}
+                  label="Sellos Repetidos"
+                  href="/sellos/gestion/repetidos"
+                  active={url === '/sellos/gestion/repetidos'}
+              />    
+                <NavItem
+                  icon={SquareCheckBig}
+                  label="Sellos por Provincia"
+                  href="/sellos/gestion/provincia"
+                  active={url === '/sellos/gestion/provincia'}
+              />  
+
 
             </div>
           )}

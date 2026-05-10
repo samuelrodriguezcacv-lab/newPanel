@@ -9,25 +9,30 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-   public function up(): void
-{
-    Schema::create('sellos', function (Blueprint $table) {
+    public function up(): void
+    {
+
+    Schema::create('All_sellos', function (Blueprint $table) {
+        //
         $table->id();
-        $table->string('prefijo_postal', 2);   // 41, 11, 28...
-        $table->string('codigo_postal', 10);
+        $table->string('codigo_sello', 20)->unique();
+        $table->tinyInteger('prefijo_postal')->unsigned()->length(2);
+        $table->integer('numero_colegiado');
         $table->string('nombre');
         $table->string('apellido1');
-        $table->string('apellido2')->nullable();
+        $table->string('apellido2');
         $table->enum('tipo_sello', ['manual', 'automatico']);
-        $table->unsignedInteger('orden')->default(1); // versión/reintento
+        $table->integer('veces_generado')->default(0);
         $table->timestamps();
+
     });
-}
+    }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('sellos');
+        //
     }
 };

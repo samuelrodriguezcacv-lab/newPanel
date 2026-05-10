@@ -9,19 +9,20 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-   public function up(): void
+ public function up(): void
 {
-    Schema::create('pedidos', function (Blueprint $table) {
-        $table->id();
-        $table->string('numero_pedido')->unique();
-        $table->timestamps();
+    Schema::table('tareas', function (Blueprint $table) {
+        $table->foreignId('pedido_id')->nullable()->constrained('pedidos')->onDelete('cascade');
     });
 }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('pedidos');
+        Schema::table('tareas', function (Blueprint $table) {
+            //
+        });
     }
 };
