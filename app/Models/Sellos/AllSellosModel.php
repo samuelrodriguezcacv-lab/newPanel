@@ -22,10 +22,10 @@ class AllSellosModel extends Model
         'veces_generado',
     ];
 
-    public static function generarCodigoSello(int $prefijo, int $numero): string
+public static function generarCodigoSello(string $prefijo, string $numero): string
 {
-    $prov = str_pad($prefijo, 2, '0', STR_PAD_LEFT);
-    $numPadded = str_pad($numero, 4, '0', STR_PAD_LEFT); // solo para el cálculo
+    $prov = str_pad((int)$prefijo, 2, '0', STR_PAD_LEFT);
+    $numPadded = str_pad((int)$numero, 4, '0', STR_PAD_LEFT);
 
     $a = 0;
     $b = 1;
@@ -41,8 +41,7 @@ class AllSellosModel extends Model
     $l = $k % 11;
     $control = ($l === 10) ? 1 : $l;
 
-    // El número colegiado se pone sin padding
-    return '0' . '1' . $prov[0] . $prov[1] . $control . '0' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+    return '0' . '1' . $prov[0] . $prov[1] . $control . '0' . $numPadded;
 }
 
 public function tareas()

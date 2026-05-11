@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
     crearPedidoApi, getPedidosApi, crearTareaApi,
-    crearSelloApi, asignarSellosApi,cerrarPedidoApi,getPedidoApi,actualizarEstadoPedidoApi
+    crearSelloApi, asignarSellosApi, cerrarPedidoApi, getPedidoApi, actualizarEstadoPedidoApi
 } from "../Services/pedidoService";
 
 export function usePedidoFlow() {
@@ -25,9 +25,17 @@ export function usePedidoFlow() {
         const tareaGuardada = localStorage.getItem("tarea_activa");
         const sellosGuardados = localStorage.getItem("sellos_acumulados");
 
-        if (pedidoGuardado) setPedido(JSON.parse(pedidoGuardado));
         if (tareaGuardada) setTareaCreada(JSON.parse(tareaGuardada));
         if (sellosGuardados) setSellosAcumulados(JSON.parse(sellosGuardados));
+
+        // Siempre refresca el pedido desde la API para tener las tareas actualizadas
+        if (pedidoGuardado) {
+            const p = JSON.parse(pedidoGuardado);
+            getPedidoApi(p.id).then((res) => {
+                setPedido(res.data);
+                localStorage.setItem("pedido_activo", JSON.stringify(res.data));
+            });
+        }
 
         getPedidosApi().then((res) => setPedidos(res.data));
     }, []);
@@ -44,34 +52,45 @@ export function usePedidoFlow() {
         }
     };
 
+    const seleccionarTarea = (t) => {
+        setTareaCreada(t);
+        localStorage.setItem("tarea_activa", JSON.stringify(t));
+    };
 
     const crearTarea = async () => {
-    setCargandoTarea(true);
-    setErroresTarea({}); // limpia errores anteriores
-    try {
-        const res = await crearTareaApi({
-            ...tarea, estado: "pendiente", pedido_id: pedido.id,
-        });
-        setTareaCreada(res.data);
-        localStorage.setItem("tarea_activa", JSON.stringify(res.data));
-    } catch (err) {
-        if (err.response?.status === 422) {
-            setErroresTarea(err.response.data.errors);
-        }
-    } finally {
-        setCargandoTarea(false);
-    }
-};
+        setCargandoTarea(true);
+        setErroresTarea({});
+        try {
+            const res = await crearTareaApi({
+                ...tarea, estado: "pendiente", pedido_id: pedido.id,
+            });
+            setTareaCreada(res.data);
+            localStorage.setItem("tarea_activa", JSON.stringify(res.data));
 
-const cerrarPedido = async () => {
-    try {
-        await cerrarPedidoApi(pedido.id);
-        setPedido({ ...pedido, estado: 'cerrado' });
-        localStorage.setItem("pedido_activo", JSON.stringify({ ...pedido, estado: 'cerrado' }));
-    } catch (err) {
-        console.error(err.response?.data);
-    }
-};
+            // Refresca el pedido para que aparezca la nueva tarea en la lista
+            const pedidoRes = await getPedidoApi(pedido.id);
+            setPedido(pedidoRes.data);
+            localStorage.setItem("pedido_activo", JSON.stringify(pedidoRes.data));
+
+        } catch (err) {
+            if (err.response?.status === 422) {
+                setErroresTarea(err.response.data.errors);
+            }
+        } finally {
+            setCargandoTarea(false);
+        }
+    };
+
+    const cerrarPedido = async () => {
+        try {
+            await cerrarPedidoApi(pedido.id);
+            const pedidoCerrado = { ...pedido, estado: 'cerrado' };
+            setPedido(pedidoCerrado);
+            localStorage.setItem("pedido_activo", JSON.stringify(pedidoCerrado));
+        } catch (err) {
+            console.error(err.response?.data);
+        }
+    };
 
     const confirmarSellos = async () => {
         await asignarSellosApi(tareaCreada.id, sellosAcumulados.map((s) => s.id));
@@ -80,6 +99,11 @@ const cerrarPedido = async () => {
         setTarea({ Tarea: "", provincia: "", fecha: "" });
         localStorage.removeItem("tarea_activa");
         localStorage.removeItem("sellos_acumulados");
+
+        // Refresca el pedido para actualizar el contador de sellos por tarea
+        const pedidoRes = await getPedidoApi(pedido.id);
+        setPedido(pedidoRes.data);
+        localStorage.setItem("pedido_activo", JSON.stringify(pedidoRes.data));
     };
 
     const cambiarPedido = () => {
@@ -91,47 +115,48 @@ const cerrarPedido = async () => {
         localStorage.removeItem("tarea_activa");
         localStorage.removeItem("sellos_acumulados");
     };
+
     const nuevaTarea = () => {
-    setTareaCreada(null);
-    setSellosAcumulados([]);
-    setTarea({ Tarea: "", provincia: "", fecha: "" });
-    localStorage.removeItem("tarea_activa");
-    localStorage.removeItem("sellos_acumulados");
-};  
-const seleccionarPedido = async (p) => {
-    const res = await getPedidoApi(p.id);
-    setPedido(res.data);
-    localStorage.setItem("pedido_activo", JSON.stringify(res.data));
-};
+        setTareaCreada(null);
+        setSellosAcumulados([]);
+        setTarea({ Tarea: "", provincia: "", fecha: "" });
+        localStorage.removeItem("tarea_activa");
+        localStorage.removeItem("sellos_acumulados");
+    };
 
+    const seleccionarPedido = async (p) => {
+        const res = await getPedidoApi(p.id);
+        setPedido(res.data);
+        localStorage.setItem("pedido_activo", JSON.stringify(res.data));
+    };
 
-const acumularSello = async () => {
-    setCargandoSello(true);
-    setErroresSello({});
-    try {
-        const res = await crearSelloApi(sello);
-        const { sello: selloData, repetido, mensaje, pedidos } = res.data;
-        if (repetido) {
-            const pedidosTexto = pedidos.length > 0
-                ? `Apareció en los pedidos: ${pedidos.join(', ')}`
-                : '';
-            alert(`⚠️ ${mensaje}\n${pedidosTexto}`);
+    const acumularSello = async () => {
+        setCargandoSello(true);
+        setErroresSello({});
+        try {
+            const res = await crearSelloApi(sello);
+            const { sello: selloData, repetido, mensaje, pedidos } = res.data;
+            if (repetido) {
+                const pedidosTexto = pedidos.length > 0
+                    ? `Apareció en los pedidos: ${pedidos.join(', ')}`
+                    : '';
+                alert(`⚠️ ${mensaje}\n${pedidosTexto}`);
+            }
+            const nuevos = [...sellosAcumulados, selloData];
+            setSellosAcumulados(nuevos);
+            localStorage.setItem("sellos_acumulados", JSON.stringify(nuevos));
+            setSello({
+                prefijo_postal: "", numero_colegiado: "", nombre: "",
+                apellido1: "", apellido2: "", tipo_sello: "manual",
+            });
+        } catch (err) {
+            if (err.response?.status === 422) {
+                setErroresSello(err.response.data.errors);
+            }
+        } finally {
+            setCargandoSello(false);
         }
-        const nuevos = [...sellosAcumulados, selloData];
-        setSellosAcumulados(nuevos);
-        localStorage.setItem("sellos_acumulados", JSON.stringify(nuevos));
-        setSello({
-            prefijo_postal: "", numero_colegiado: "", nombre: "",
-            apellido1: "", apellido2: "", tipo_sello: "manual",
-        });
-    } catch (err) {
-        if (err.response?.status === 422) {
-            setErroresSello(err.response.data.errors);
-        }
-    } finally {
-        setCargandoSello(false);
-    }
-};
+    };
 
     return {
         pedidos, pedido, setPedido,
@@ -139,7 +164,7 @@ const acumularSello = async () => {
         sello, setSello, sellosAcumulados,
         cargando, cargandoTarea, cargandoSello,
         crearPedido, crearTarea, acumularSello,
-        confirmarSellos, cambiarPedido,nuevaTarea,
-        seleccionarPedido,cerrarPedido,erroresTarea, erroresSello,
+        confirmarSellos, cambiarPedido, nuevaTarea,
+        seleccionarPedido, cerrarPedido, erroresTarea, erroresSello, seleccionarTarea,
     };
 }

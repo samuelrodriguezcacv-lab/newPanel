@@ -2,7 +2,19 @@ import axios from "axios";
 
 export const crearPedidoApi = () => axios.post("/pedidos");
 export const getPedidosApi = () => axios.get("/pedidos");
-export const crearTareaApi = (data) => axios.post("/tareas", data);
+export const crearTareaApi = (data) => {
+    const payload = {
+        Tarea: Number(data.Tarea ?? data.numero_tarea),
+        fecha: data.fecha,
+        estado: data.estado || "pendiente",
+        provincia: Number(data.provincia),
+        pedido_id: Number(data.pedido_id),
+    };
+
+    console.log("Datos enviados a /tareas:", payload);
+
+    return axios.post("/tareas", payload);
+};
 export const crearSelloApi = (data) => axios.post("/sellos", data);
 export const getPedidoApi = (id) => axios.get(`/pedidos/${id}`);
 export const asignarSellosApi = (tareaId, sellos) =>

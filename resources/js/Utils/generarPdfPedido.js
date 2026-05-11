@@ -2,8 +2,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const PROVINCIAS = {
-    4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
-    21: "Huelva", 23: "Jaén", 29: "Málaga", 41: "Sevilla"
+    "04": "Almería", "11": "Cádiz", "14": "Córdoba", "18": "Granada",
+    "21": "Huelva", "23": "Jaén", "29": "Málaga", "41": "Sevilla"
 };
 
 export function generarPdfPedido(pedido) {
@@ -24,7 +24,7 @@ export function generarPdfPedido(pedido) {
 
     pedido.tareas?.forEach((t) => {
         t.sellos?.forEach((s) => {
-            const prov = t.provincia;
+            const prov = String(s.prefijo_postal).padStart(2, '0');
             if (s.tipo_sello === "manual") {
                 if (!manuales[prov]) manuales[prov] = [];
                 manuales[prov].push({ ...s, tarea: t.Tarea });
@@ -35,10 +35,14 @@ export function generarPdfPedido(pedido) {
         });
     });
 
+    // Ordenar provincias
+    const manualesOrdenados   = Object.fromEntries(Object.entries(manuales).sort());
+    const automaticosOrdenados = Object.fromEntries(Object.entries(automaticos).sort());
+
     let y = 44;
 
     // SECCIÓN MANUAL
-    if (Object.keys(manuales).length > 0) {
+    if (Object.keys(manualesOrdenados).length > 0) {
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 64, 175);
@@ -49,7 +53,13 @@ export function generarPdfPedido(pedido) {
         y += 8;
         doc.setTextColor(0, 0, 0);
 
-        Object.entries(manuales).forEach(([provincia, sellos]) => {
+        Object.entries(manualesOrdenados).forEach(([provincia, sellos]) => {
+            // Salto de página si no hay espacio
+            if (y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
             doc.text(`${PROVINCIAS[provincia] ?? provincia}`, 14, y);
@@ -57,9 +67,8 @@ export function generarPdfPedido(pedido) {
 
             autoTable(doc, {
                 startY: y,
-                head: [[ "Código", "Colegiado", "Nombre", "Apellidos"]],
+                head: [["Código", "Colegiado", "Nombre", "Apellidos"]],
                 body: sellos.map((s) => [
-                    
                     s.codigo_sello,
                     s.numero_colegiado,
                     s.nombre,
@@ -74,13 +83,13 @@ export function generarPdfPedido(pedido) {
     }
 
     // SALTO DE PÁGINA ANTES DE AUTOMÁTICOS
-    if (Object.keys(manuales).length > 0 && Object.keys(automaticos).length > 0) {
+    if (Object.keys(manualesOrdenados).length > 0 && Object.keys(automaticosOrdenados).length > 0) {
         doc.addPage();
         y = 20;
     }
 
     // SECCIÓN AUTOMÁTICO
-    if (Object.keys(automaticos).length > 0) {
+    if (Object.keys(automaticosOrdenados).length > 0) {
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(109, 40, 217);
@@ -91,7 +100,12 @@ export function generarPdfPedido(pedido) {
         y += 8;
         doc.setTextColor(0, 0, 0);
 
-        Object.entries(automaticos).forEach(([provincia, sellos]) => {
+        Object.entries(automaticosOrdenados).forEach(([provincia, sellos]) => {
+            if (y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
             doc.text(`${PROVINCIAS[provincia] ?? provincia}`, 14, y);
@@ -99,9 +113,8 @@ export function generarPdfPedido(pedido) {
 
             autoTable(doc, {
                 startY: y,
-                head: [[ "Código", "Colegiado", "Nombre", "Apellidos"]],
+                head: [["Código", "Colegiado", "Nombre", "Apellidos"]],
                 body: sellos.map((s) => [
-                    
                     s.codigo_sello,
                     s.numero_colegiado,
                     s.nombre,

@@ -14,7 +14,7 @@ export default function NuevoPedido() {
         cargando, cargandoTarea, cargandoSello,
         crearPedido, crearTarea, acumularSello,
         confirmarSellos, cambiarPedido, nuevaTarea,
-        seleccionarPedido, cerrarPedido, erroresTarea, erroresSello,
+        seleccionarPedido, cerrarPedido, erroresTarea, erroresSello,seleccionarTarea,
     } = usePedidoFlow();
 
     return (
@@ -101,6 +101,34 @@ export default function NuevoPedido() {
                                 </button>
                             </div>
                         </div>
+
+                        {/* TAREAS EXISTENTES DEL PEDIDO */}
+{pedido?.tareas?.length > 0 && !tareaCreada && (
+    <div className="bg-white border rounded-xl p-4 space-y-2">
+        <h2 className="text-sm font-semibold text-gray-700">
+            Tareas de este pedido
+        </h2>
+        <div className="space-y-2">
+            {pedido.tareas.map((t) => (
+                <button
+                    key={t.id}
+                    onClick={() => seleccionarTarea(t)}
+                    className="w-full text-left px-3 py-2 rounded-lg border bg-gray-50 hover:bg-gray-100 text-sm flex justify-between items-center"
+                >
+                    <span className="font-medium text-gray-700">
+                        Tarea {t.Tarea}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                        {t.sellos?.length ?? 0} sellos · {t.provincia}
+                    </span>
+                </button>
+            ))}
+        </div>
+        <p className="text-xs text-gray-400">
+            O crea una nueva tarea abajo
+        </p>
+    </div>
+)}
 
                         {/* PASO 3 — FORMULARIO TAREA */}
                         {!tareaCreada && pedido.estado !== 'cerrado' && (
