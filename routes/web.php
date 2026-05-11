@@ -5,6 +5,7 @@ use App\Http\Controllers\TestSelloController;
 use App\Http\Controllers\AllSellosController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\TareaController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\OrdenCompraColegioController;
 
 
@@ -19,9 +20,23 @@ Route::get('/sellos/tareas', fn() => Inertia::render('Sellos/Tareas/TareasList')
 Route::get('/sellos/gestion/todos', fn() => Inertia::render('Sellos/GestionSellos/TodosSellos'));
 Route::get('/sellos/gestion/repetidos', fn() => Inertia::render('Sellos/GestionSellos/SellosRepetidos'));
 Route::get('/sellos/gestion/provincia', fn() => Inertia::render('Sellos/GestionSellos/SellosPorProvincia'));
-Route::get('/envio-proveedores/dashboard-orden-proveedores', fn() =>
-    Inertia::render('EnvioProveedores/Dashboard/Dashboard')
-);
+
+
+
+
+
+// Vista Pedidos Proveedores
+
+// OPCIÓN CORRECTA
+Route::get('envio-proveedores/dashboard-orden-proveedores', [ProveedorController::class, 'index']);
+//Ruta CRUD Proveedores
+// Opción A: Usar la ruta que ya tienes (Recomendado para que funcione el recurso)
+Route::resource('proveedores', ProveedorController::class)->except(['index']);
+
+Route::get('envio-proveedores/dashboard-orden-proveedores', [ProveedorController::class, 'index']);
+Route::post('envio-proveedores/pedidos', [ProveedorController::class, 'crearPedido'])->name('pedidos.crear');
+Route::get('envio-proveedores/pedidos/{id}/pdf', [ProveedorController::class, 'generarPdf'])->name('pedidos.pdf');
+
 // API PEDIDOS
 Route::get('/pedidos', [PedidoController::class, 'index']);
 Route::post('/pedidos', [PedidoController::class, 'store']);
@@ -48,6 +63,9 @@ Route::delete('/tareas/{id}', [TareaController::class, 'destroy']);
 Route::put('/sellos/{id}', [AllSellosController::class, 'update']);
 
 Route::get('/dashboard/metricas', [PedidoController::class, 'metricas']);
+
+
+
 
 
 

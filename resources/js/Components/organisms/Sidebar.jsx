@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
 import { Link, usePage } from '@inertiajs/react'
-import { Home, Stamp, Settings, Folder,ClipboardCheck, Box,ClipboardList, SquareCheckBig} from "lucide-react" 
+import { Home, Stamp, Settings, Folder,ClipboardCheck, Box,ClipboardList, SquareCheckBig,Truck} from "lucide-react" 
 
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
@@ -119,6 +119,15 @@ export default function Sidebar() {
 
             </div>
           )}
+                <NavItem icon={Truck }
+                 label="Pedidos Proveedores"
+                  href="/envio-proveedores/dashboard-orden-proveedores"
+                  active={url === '/envio-proveedores/dashboard-orden-proveedores'}
+                 />    
+
+            
+
+
 
                 <NavItem icon={Settings} label="Configuración" />
         </div>

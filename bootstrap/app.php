@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         '/sellos/*', // ← añade esta línea para actualizar sellos
         '/ordenes-compra-colegios',
     '/ordenes-compra-colegios/*',
+    
     ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {

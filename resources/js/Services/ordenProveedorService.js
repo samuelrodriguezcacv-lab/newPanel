@@ -1,23 +1,8 @@
+// En tu Services/OrdenProveedorService.js simplificado
 import axios from "axios";
 
-const OrdenProveedorService = {
-
-  // 📦 proveedores
-  getProveedores: () =>
-    axios.get("/api/proveedores"),
-
-  // 🏫 colegios destino
-  getColegios: () =>
-    axios.get("/api/colegios"),
-
-  // 📦 productos por proveedor
-  getProductosByProveedor: (proveedorId) =>
-    axios.get(`/api/proveedores/${proveedorId}/productos`),
-
-  // 🧾 crear orden
-  crearOrden: (data) =>
-    axios.post("/ordenes-proveedores", data),
-
+export const getProductosByProveedor = async (id) => {
+    // Esta sigue siendo una ruta de API que devuelve JSON
+    const response = await axios.get(`/api/proveedores/${id}/productos`);
+    return response.data;
 };
-
-export default OrdenProveedorService;

@@ -25,4 +25,9 @@ class ProveedorModel extends Model
     {
         return $this->hasMany(\App\Models\EnvioProveedores\PedidoColegioModel::class, 'proveedor_id');
     }
+
+            public function productos()
+        {
+            return $this->hasMany(ProductoModel::class, 'proveedor_id');
+        }
 }
