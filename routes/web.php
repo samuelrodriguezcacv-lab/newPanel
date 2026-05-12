@@ -7,7 +7,8 @@ use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\TareaController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\OrdenCompraColegioController;
-
+use App\Http\Controllers\TareaLogisticaController;
+use App\Http\Controllers\MetacrilatoController;
 
 use Inertia\Inertia;
 
@@ -21,9 +22,18 @@ Route::get('/sellos/gestion/todos', fn() => Inertia::render('Sellos/GestionSello
 Route::get('/sellos/gestion/repetidos', fn() => Inertia::render('Sellos/GestionSellos/SellosRepetidos'));
 Route::get('/sellos/gestion/provincia', fn() => Inertia::render('Sellos/GestionSellos/SellosPorProvincia'));
 
+Route::get('metacrilatos/{id}/pdf', [MetacrilatoController::class, 'generarPdf'])->name('metacrilatos.pdf');
 
 
 
+Route::resource('tareas-logistica', TareaLogisticaController::class)
+    ->only(['index', 'store', 'update', 'destroy']);
+
+
+
+Route::get('metacrilatos', [MetacrilatoController::class, 'index'])->name('metacrilatos.index');
+Route::post('metacrilatos', [MetacrilatoController::class, 'store'])->name('metacrilatos.store');
+Route::delete('metacrilatos/{id}', [MetacrilatoController::class, 'destroy'])->name('metacrilatos.destroy');
 
 // Vista Pedidos Proveedores
 
