@@ -26,12 +26,30 @@ export default function TareasList() {
     const [formEditTarea, setFormEditTarea] = useState({});
     const [cargando, setCargando] = useState(true);
 
-    useEffect(() => {
-        getTareasApi().then((res) => {
-            setTareas(res.data);
-            setCargando(false);
-        });
-    }, []);
+// Leer parámetro tarea de la URL
+useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tareaUrl = params.get('tarea');
+    
+    getTareasApi().then((res) => {
+        setTareas(res.data);
+        setCargando(false);
+        
+        // Si viene una tarea desde tareas-logistica, abrirla automáticamente
+        if (tareaUrl) {
+            const tareaEncontrada = res.data.find(t => String(t.Tarea) === String(tareaUrl));
+            if (tareaEncontrada) {
+                setTareaDetalle(tareaEncontrada);
+                // Scroll hasta ella después de renderizar
+                setTimeout(() => {
+                    document.getElementById(`tarea-${tareaEncontrada.id}`)?.scrollIntoView({ 
+                        behavior: 'smooth', block: 'center' 
+                    });
+                }, 300);
+            }
+        }
+    });
+}, []);
 
     const cambiarEstado = async (tarea, estado) => {
         await updateTareaEstadoApi(tarea.id, estado);

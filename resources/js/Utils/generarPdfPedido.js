@@ -1,132 +1,449 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+  TabStopType,
+  UnderlineType,
+} from "docx";
+import { saveAs } from "file-saver";
+
+import calibriRegularUrl from "../../fonts/calibri-regular.ttf?url";
+import calibriBoldUrl from "../../fonts/calibri-bold.ttf?url";
 
 const PROVINCIAS = {
-    "04": "Almería", "11": "Cádiz", "14": "Córdoba", "18": "Granada",
-    "21": "Huelva", "23": "Jaén", "29": "Málaga", "41": "Sevilla"
+  "04": "ALMERÍA",
+  "11": "CÁDIZ",
+  "14": "CÓRDOBA",
+  "18": "GRANADA",
+  "21": "HUELVA",
+  "23": "JAÉN",
+  "29": "MÁLAGA",
+  "41": "SEVILLA",
 };
 
-export function generarPdfPedido(pedido) {
-    const doc = new jsPDF();
+async function convertirFuenteABase64(url) {
+  const response = await fetch(url);
 
-    // CABECERA
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Pedido ${pedido.numero_pedido}`, 14, 20);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Fecha: ${pedido.fecha}`, 14, 28);
-    doc.text(`Estado: ${pedido.estado ?? 'abierto'}`, 14, 34);
+  if (!response.ok) {
+    throw new Error(`No se pudo cargar la fuente: ${url}`);
+  }
 
-    // Recoge todos los sellos agrupados por tipo y provincia
-    const manuales = {};
-    const automaticos = {};
+  const arrayBuffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
 
-    pedido.tareas?.forEach((t) => {
-        t.sellos?.forEach((s) => {
-            const prov = String(s.prefijo_postal).padStart(2, '0');
-            if (s.tipo_sello === "manual") {
-                if (!manuales[prov]) manuales[prov] = [];
-                manuales[prov].push({ ...s, tarea: t.Tarea });
-            } else {
-                if (!automaticos[prov]) automaticos[prov] = [];
-                automaticos[prov].push({ ...s, tarea: t.Tarea });
-            }
-        });
+  let binary = "";
+
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+
+  return btoa(binary);
+}
+
+async function registrarCalibri(doc) {
+  const calibriRegularBase64 = await convertirFuenteABase64(calibriRegularUrl);
+  const calibriBoldBase64 = await convertirFuenteABase64(calibriBoldUrl);
+
+  doc.addFileToVFS("calibri-regular.ttf", calibriRegularBase64);
+  doc.addFont("calibri-regular.ttf", "Calibri", "normal");
+
+  doc.addFileToVFS("calibri-bold.ttf", calibriBoldBase64);
+  doc.addFont("calibri-bold.ttf", "Calibri", "bold");
+}
+
+function normalizarProvincia(prefijo) {
+  return String(prefijo ?? "").padStart(2, "0");
+}
+
+function agruparSellosPorTipoYProvincia(pedido) {
+  const manuales = {};
+  const automaticos = {};
+
+  pedido.tareas?.forEach((tarea) => {
+    tarea.sellos?.forEach((sello) => {
+      const provincia = normalizarProvincia(sello.prefijo_postal);
+
+      const destino =
+        sello.tipo_sello === "manual" ? manuales : automaticos;
+
+      if (!destino[provincia]) {
+        destino[provincia] = [];
+      }
+
+      destino[provincia].push({
+        ...sello,
+        tarea: tarea.Tarea,
+      });
+    });
+  });
+
+  return {
+    manuales: Object.fromEntries(Object.entries(manuales).sort()),
+    automaticos: Object.fromEntries(Object.entries(automaticos).sort()),
+  };
+}
+
+/* =========================
+   GENERADOR PDF
+========================= */
+
+function subrayarTexto(doc, texto, x, y, align = "left") {
+  const ancho = doc.getTextWidth(texto);
+
+  let xInicio = x;
+  let xFin = x + ancho;
+
+  if (align === "center") {
+    xInicio = x - ancho / 2;
+    xFin = x + ancho / 2;
+  }
+
+  doc.line(xInicio, y + 1, xFin, y + 1);
+}
+
+function comprobarSaltoPagina(doc, y, espacioNecesario = 20) {
+  if (y + espacioNecesario > 285) {
+    doc.addPage();
+    return 18;
+  }
+
+  return y;
+}
+
+function pintarTituloTipoSelloPdf(doc, titulo, y) {
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("Calibri", "bold");
+  doc.setFontSize(12);
+
+  const xCentro = 105;
+
+  doc.text(titulo, xCentro, y, { align: "center" });
+  subrayarTexto(doc, titulo, xCentro, y, "center");
+
+  return y + 16;
+}
+
+function pintarColegioPdf(doc, provincia, y) {
+  const nombreProvincia = PROVINCIAS[provincia] ?? provincia;
+  const titulo = `COLEGIO DE ${nombreProvincia}`;
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("Calibri", "bold");
+  doc.setFontSize(12);
+
+  doc.text(titulo, 12, y);
+  subrayarTexto(doc, titulo, 12, y, "left");
+
+  return y + 12;
+}
+
+function pintarCabeceraColumnasPdf(doc, y) {
+  doc.setFont("Calibri", "bold");
+  doc.setFontSize(12);
+
+  doc.text("Nombre", 14, y);
+  doc.text("Apellido1", 52, y);
+  doc.text("Apellido2", 92, y);
+  doc.text("Nuevo número", 145, y);
+
+  return y + 7;
+}
+
+function pintarSelloPdf(doc, sello, y) {
+  doc.setFont("Calibri", "normal");
+  doc.setFontSize(12);
+
+  const nombre = sello.nombre ?? "";
+  const apellido1 = sello.apellido1 ?? "";
+  const apellido2 = sello.apellido2 ?? "";
+
+  /*
+    Si "Nuevo número" no corresponde a codigo_sello,
+    cambia esta línea por el campo correcto.
+  */
+  const nuevoNumero = sello.codigo_sello ?? "";
+
+  doc.text(String(nombre), 14, y);
+  doc.text(String(apellido1), 52, y);
+  doc.text(String(apellido2), 92, y);
+  doc.text(String(nuevoNumero), 145, y);
+
+  return y + 6;
+}
+
+function pintarSeccionPdf(doc, titulo, grupos, y) {
+  if (Object.keys(grupos).length === 0) {
+    return y;
+  }
+
+  y = pintarTituloTipoSelloPdf(doc, titulo, y);
+
+  Object.entries(grupos).forEach(([provincia, sellos]) => {
+    y = comprobarSaltoPagina(doc, y, 40);
+
+    y = pintarColegioPdf(doc, provincia, y);
+    y = pintarCabeceraColumnasPdf(doc, y);
+
+    sellos.forEach((sello) => {
+      y = comprobarSaltoPagina(doc, y, 10);
+      y = pintarSelloPdf(doc, sello, y);
     });
 
-    // Ordenar provincias
-    const manualesOrdenados   = Object.fromEntries(Object.entries(manuales).sort());
-    const automaticosOrdenados = Object.fromEntries(Object.entries(automaticos).sort());
+    y += 10;
+  });
 
-    let y = 44;
+  return y;
+}
 
-    // SECCIÓN MANUAL
-    if (Object.keys(manualesOrdenados).length > 0) {
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30, 64, 175);
-        doc.text("SELLOS MANUALES", 14, y);
-        y += 4;
-        doc.setDrawColor(30, 64, 175);
-        doc.line(14, y, 196, y);
-        y += 8;
-        doc.setTextColor(0, 0, 0);
+async function generarPdf(pedido, manuales, automaticos) {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
 
-        Object.entries(manualesOrdenados).forEach(([provincia, sellos]) => {
-            // Salto de página si no hay espacio
-            if (y > 250) {
-                doc.addPage();
-                y = 20;
-            }
+  await registrarCalibri(doc);
 
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text(`${PROVINCIAS[provincia] ?? provincia}`, 14, y);
-            y += 4;
+  let y = 18;
 
-            autoTable(doc, {
-                startY: y,
-                head: [["Código", "Colegiado", "Nombre", "Apellidos"]],
-                body: sellos.map((s) => [
-                    s.codigo_sello,
-                    s.numero_colegiado,
-                    s.nombre,
-                    `${s.apellido1} ${s.apellido2 ?? ""}`.trim(),
-                ]),
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [219, 234, 254], textColor: [30, 64, 175] },
-                margin: { left: 14, right: 14 },
-            });
-            y = doc.lastAutoTable.finalY + 8;
-        });
-    }
+  if (Object.keys(manuales).length > 0) {
+    y = pintarSeccionPdf(doc, "SELLOS MANUAL", manuales, y);
+  }
 
-    // SALTO DE PÁGINA ANTES DE AUTOMÁTICOS
-    if (Object.keys(manualesOrdenados).length > 0 && Object.keys(automaticosOrdenados).length > 0) {
-        doc.addPage();
-        y = 20;
-    }
+  if (
+    Object.keys(manuales).length > 0 &&
+    Object.keys(automaticos).length > 0
+  ) {
+    doc.addPage();
+    y = 18;
+  }
 
-    // SECCIÓN AUTOMÁTICO
-    if (Object.keys(automaticosOrdenados).length > 0) {
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(109, 40, 217);
-        doc.text("SELLOS AUTOMÁTICOS", 14, y);
-        y += 4;
-        doc.setDrawColor(109, 40, 217);
-        doc.line(14, y, 196, y);
-        y += 8;
-        doc.setTextColor(0, 0, 0);
+  if (Object.keys(automaticos).length > 0) {
+    y = pintarSeccionPdf(doc, "SELLOS AUTOMÁTICO", automaticos, y);
+  }
 
-        Object.entries(automaticosOrdenados).forEach(([provincia, sellos]) => {
-            if (y > 250) {
-                doc.addPage();
-                y = 20;
-            }
+  doc.save(`pedido-${pedido.numero_pedido}.pdf`);
+}
 
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.text(`${PROVINCIAS[provincia] ?? provincia}`, 14, y);
-            y += 4;
+/* =========================
+   GENERADOR WORD
+========================= */
 
-            autoTable(doc, {
-                startY: y,
-                head: [["Código", "Colegiado", "Nombre", "Apellidos"]],
-                body: sellos.map((s) => [
-                    s.codigo_sello,
-                    s.numero_colegiado,
-                    s.nombre,
-                    `${s.apellido1} ${s.apellido2 ?? ""}`.trim(),
-                ]),
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [237, 233, 254], textColor: [109, 40, 217] },
-                margin: { left: 14, right: 14 },
-            });
-            y = doc.lastAutoTable.finalY + 8;
-        });
-    }
+function crearParrafoVacio() {
+  return new Paragraph({
+    children: [new TextRun("")],
+    spacing: {
+      after: 120,
+    },
+  });
+}
 
-    doc.save(`pedido-${pedido.numero_pedido}.pdf`);
+function crearTituloWord(titulo) {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: {
+      after: 360,
+    },
+    children: [
+      new TextRun({
+        text: titulo,
+        bold: true,
+        size: 24,
+        font: "Calibri",
+        underline: {
+          type: UnderlineType.SINGLE,
+        },
+      }),
+    ],
+  });
+}
+
+function crearColegioWord(provincia) {
+  const nombreProvincia = PROVINCIAS[provincia] ?? provincia;
+
+  return new Paragraph({
+    spacing: {
+      before: 240,
+      after: 240,
+    },
+    children: [
+      new TextRun({
+        text: `COLEGIO DE ${nombreProvincia}`,
+        bold: true,
+        size: 24,
+        font: "Calibri",
+        underline: {
+          type: UnderlineType.SINGLE,
+        },
+      }),
+    ],
+  });
+}
+
+function crearCabeceraColumnasWord() {
+  return new Paragraph({
+    tabStops: [
+      { type: TabStopType.LEFT, position: 1800 },
+      { type: TabStopType.LEFT, position: 3600 },
+      { type: TabStopType.LEFT, position: 5800 },
+    ],
+    spacing: {
+      after: 120,
+    },
+    children: [
+      new TextRun({
+        text: "Nombre",
+        bold: true,
+        size: 24,
+        font: "Calibri",
+      }),
+      new TextRun({
+        text: "\tApellido1",
+        bold: true,
+        size: 24,
+        font: "Calibri",
+      }),
+      new TextRun({
+        text: "\tApellido2",
+        bold: true,
+        size: 24,
+        font: "Calibri",
+      }),
+      new TextRun({
+        text: "\tNuevo número",
+        bold: true,
+        size: 24,
+        font: "Calibri",
+      }),
+    ],
+  });
+}
+
+function crearFilaSelloWord(sello) {
+  const nombre = sello.nombre ?? "";
+  const apellido1 = sello.apellido1 ?? "";
+  const apellido2 = sello.apellido2 ?? "";
+
+  /*
+    Si "Nuevo número" no corresponde a codigo_sello,
+    cambia esta línea por el campo correcto.
+  */
+  const nuevoNumero = sello.codigo_sello ?? "";
+
+  return new Paragraph({
+    tabStops: [
+      { type: TabStopType.LEFT, position: 1800 },
+      { type: TabStopType.LEFT, position: 3600 },
+      { type: TabStopType.LEFT, position: 5800 },
+    ],
+    spacing: {
+      after: 80,
+    },
+    children: [
+      new TextRun({
+        text: String(nombre),
+        size: 24,
+        font: "Calibri",
+      }),
+      new TextRun({
+        text: `\t${apellido1}`,
+        size: 24,
+        font: "Calibri",
+      }),
+      new TextRun({
+        text: `\t${apellido2}`,
+        size: 24,
+        font: "Calibri",
+      }),
+      new TextRun({
+        text: `\t${nuevoNumero}`,
+        size: 24,
+        font: "Calibri",
+      }),
+    ],
+  });
+}
+
+function crearSeccionWord(titulo, grupos) {
+  const children = [];
+
+  if (Object.keys(grupos).length === 0) {
+    return children;
+  }
+
+  children.push(crearTituloWord(titulo));
+
+  Object.entries(grupos).forEach(([provincia, sellos]) => {
+    children.push(crearColegioWord(provincia));
+    children.push(crearCabeceraColumnasWord());
+
+    sellos.forEach((sello) => {
+      children.push(crearFilaSelloWord(sello));
+    });
+
+    children.push(crearParrafoVacio());
+  });
+
+  return children;
+}
+
+async function generarWord(pedido, manuales, automaticos) {
+  const children = [];
+
+  if (Object.keys(manuales).length > 0) {
+    children.push(...crearSeccionWord("SELLOS MANUAL", manuales));
+  }
+
+  if (
+    Object.keys(manuales).length > 0 &&
+    Object.keys(automaticos).length > 0
+  ) {
+    children.push(
+      new Paragraph({
+        pageBreakBefore: true,
+        children: [],
+      })
+    );
+  }
+
+  if (Object.keys(automaticos).length > 0) {
+    children.push(...crearSeccionWord("SELLOS AUTOMÁTICO", automaticos));
+  }
+
+  const documento = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: 720,
+              right: 720,
+              bottom: 720,
+              left: 720,
+            },
+          },
+        },
+        children,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(documento);
+
+  saveAs(blob, `pedido-${pedido.numero_pedido}.docx`);
+}
+
+/* =========================
+   FUNCIÓN PRINCIPAL
+========================= */
+
+export async function generarPdfPedido(pedido) {
+  const { manuales, automaticos } = agruparSellosPorTipoYProvincia(pedido);
+
+  await generarPdf(pedido, manuales, automaticos);
+
+  await generarWord(pedido, manuales, automaticos);
 }

@@ -23,10 +23,13 @@ class HandleInertiaRequests extends Middleware
     /**
      * Define shared props.
      */
-    public function share(Request $request): array
-    {
-        return array_merge(parent::share($request), [
-            //
-        ]);
-    }
+public function share(Request $request): array
+{
+    return array_merge(parent::share($request), [
+        'flash' => [
+            // Usamos ?? null para que siempre exista la llave pero sea nula
+            'pdf_url' => $request->session()->get('pdf_url') ?? null,
+        ],
+    ]);
+}
 }
