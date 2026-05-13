@@ -11,7 +11,7 @@ class AllSellosController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'prefijo_postal'   => 'required|integer|between:1,99',
+            'prefijo_postal' => ['required', 'string', 'regex:/^\d{2}$/'],
             'numero_colegiado' => 'required|string|max:4',
             'nombre'           => 'required|string|max:255',
             'apellido1'        => 'required|string|max:255',

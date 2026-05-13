@@ -27,8 +27,15 @@ Route::get('/sellos/gestion/provincia', fn() => Inertia::render('Sellos/GestionS
 // Tareas logistica
 Route::resource('tareas-logistica', TareaLogisticaController::class)
     ->only(['index', 'store', 'update', 'destroy']);
-
+Route::get('/tareas-logistica', [TareaLogisticaController::class, 'index']);
+Route::get('/metricas', [PedidoController::class, 'metricas']);
+Route::get('/sellos-repetidos', [AllSellosController::class, 'repetidos']);
 // Vista Pedidos Proveedores
+
+Route::get('/api-n8n/tareas-logistica', [TareaLogisticaController::class, 'apiIndex']);
+Route::get('/api-n8n/metricas', [PedidoController::class, 'metricas']);
+Route::get('/api-n8n/sellos-repetidos', [AllSellosController::class, 'repetidos']);
+
 
 // OPCIÓN CORRECTA
 Route::get('envio-proveedores/dashboard-orden-proveedores', [ProveedorController::class, 'index']);

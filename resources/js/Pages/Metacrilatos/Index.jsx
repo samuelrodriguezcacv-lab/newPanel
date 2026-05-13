@@ -1,5 +1,9 @@
 import React, { useEffect } from 'react';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
+import Layout from '../../Template/LayaoutNav';
+import Sidebar from '../../Components/organisms/Sidebar';
+
+
 
 export default function Index({ metacrilatos, tiposCentro }) {
     // Obtenemos las props globales para leer el mensaje flash
@@ -33,7 +37,9 @@ export default function Index({ metacrilatos, tiposCentro }) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+
+      <Layout>
+            <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <Head title="Placas Veterinarias" />
             
             <div className="max-w-4xl mx-auto">
@@ -106,5 +112,15 @@ export default function Index({ metacrilatos, tiposCentro }) {
                 </div>
             </div>
         </div>
+
+
+
+      </Layout>
+        
+        
+        
+        
+       
+    
     );
 }

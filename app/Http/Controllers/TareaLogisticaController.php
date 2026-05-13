@@ -53,4 +53,13 @@ class TareaLogisticaController extends Controller
         return redirect()->route('tareas-logistica.index')
             ->with('success', 'Tarea eliminada correctamente');
     }
+    public function apiIndex()
+{
+    $tareas = TareaLogistica::orderByRaw("FIELD(estado, 'pendiente', 'en_proceso', 'completada')")
+        ->orderByDesc('created_at')
+        ->get()
+        ->groupBy('tipo');
+
+    return response()->json($tareas);
+}
 }

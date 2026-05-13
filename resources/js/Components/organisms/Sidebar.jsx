@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
 import { Link, usePage } from '@inertiajs/react'
-import { Home, Stamp, Settings, Folder,ClipboardCheck, Box,ClipboardList, SquareCheckBig,Truck} from "lucide-react" 
+import { Home, Stamp, Settings, Folder,ClipboardCheck, Box,ClipboardList, SquareCheckBig,Truck,PanelsTopLeft} from "lucide-react" 
 
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
@@ -25,13 +25,25 @@ export default function Sidebar() {
 
       <div className="space-y-2">
 
-        {/* ITEM NORMAL */}
-        <NavItem
+
+           <NavItem
           icon={Home}
           label="Dashboard"
           href="/sellos/dashboard-sellos"
           active={url === '/sellos/dashboard-sellos'}
         />
+
+        <NavItem 
+          icon={ClipboardList}
+          label="Tares Generales"
+          href="/tareas-logistica"
+          active={url === '/tareas-logistica'}
+          />
+
+        {/* ITEM NORMAL */}
+
+
+     
 
         {/* ITEM CON SUBMENU */}
         <div>
@@ -125,6 +137,12 @@ export default function Sidebar() {
                   active={url === '/envio-proveedores/dashboard-orden-proveedores'}
                  />    
 
+
+                <NavItem icon={PanelsTopLeft}
+                  label="Metacrilatos"
+                  href="/metacrilatos"
+                  active={url === '/metacrilatos'}
+                  />
             
 
 
