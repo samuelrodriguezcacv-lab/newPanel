@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { getSellosApi, editarSelloApi, eliminarSelloApi } from "../../../Services/pedidoService";
 import Input from "../../../Components/atoms/input.jsx";
 import Button from "../../../Components/atoms/button.jsx";
-import SelectorToggle from "../../../Components/atoms/SelectorToggle.jsx";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -16,227 +15,283 @@ export default function TodosSellos() {
     const [busqueda, setBusqueda] = useState("");
     const [filtroTipo, setFiltroTipo] = useState("");
     const [filtroProvincia, setFiltroProvincia] = useState("");
+    
+    // El formulario derecho se alimenta del sello seleccionado aquí
+    const [selloSeleccionado, setSelloSeleccionado] = useState(null);
+    const [formEdit, setFormEdit] = useState({});
 
     useEffect(() => {
         getSellosApi().then((res) => {
             setSellos(res.data);
             setCargando(false);
+            // Seleccionar el primero por defecto si existen datos, tal como en la imagen
+            if (res.data && res.data.length > 0) {
+                seleccionarSello(res.data[0]);
+            }
         });
     }, []);
 
+    const seleccionarSello = (sello) => {
+        setSelloSeleccionado(sello);
+        setFormEdit({
+            prefijo_postal:   sello.prefijo_postal,
+            numero_colegiado: sello.numero_colegiado,
+            nombre:           sello.nombre,
+            apellido1:        sello.apellido1,
+            apellido2:        sello.apellido2 ?? "",
+            tipo_sello:       sello.tipo_sello,
+        });
+    };
+
     const eliminarSello = async (id) => {
-    if (!confirm("¿Eliminar este sello?")) return;
-    await eliminarSelloApi(id);
-    setSellos(sellos.filter((s) => s.id !== id));
-};
+        if (!confirm("¿Eliminar este sello de forma permanente?")) return;
+        await eliminarSelloApi(id);
+        const nuevosSellos = sellos.filter((s) => s.id !== id);
+        setSellos(nuevosSellos);
+        if (selloSeleccionado?.id === id) {
+            setSelloSeleccionado(nuevosSellos[0] || null);
+        }
+    };
+
+    const guardarEdicion = async () => {
+        await editarSelloApi(selloSeleccionado.id, formEdit);
+        const res = await getSellosApi();
+        setSellos(res.data);
+        const actualizado = res.data.find(s => s.id === selloSeleccionado.id);
+        if (actualizado) setSelloSeleccionado(actualizado);
+    };
 
     const sellosFiltrados = sellos.filter((s) => {
         const coincideBusqueda = busqueda
             ? s.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
               s.apellido1.toLowerCase().includes(busqueda.toLowerCase()) ||
-              s.codigo_sello.includes(busqueda) ||
+              s.codigo_sello.toLowerCase().includes(busqueda.toLowerCase()) ||
               String(s.numero_colegiado).includes(busqueda)
             : true;
         const coincideTipo = filtroTipo ? s.tipo_sello === filtroTipo : true;
         const coincideProvincia = filtroProvincia ? s.prefijo_postal == filtroProvincia : true;
         return coincideBusqueda && coincideTipo && coincideProvincia;
     });
-    const [selloEditando, setSelloEditando] = useState(null);
-    const [formEdit, setFormEdit] = useState({});
-
-    const guardarEdicion = async () => {
-    await editarSelloApi(selloEditando.id, formEdit);
-    const res = await getSellosApi();
-    setSellos(res.data);
-    setSelloEditando(null);
-};
 
     return (
         <Layout>
-            <div className="p-6 space-y-6">
-                <h1 className="text-2xl font-bold text-gray-900">Todos los Sellos</h1>
-
-                {/* FILTROS */}
-                <div className="flex gap-4 bg-white border rounded-xl p-4 flex-wrap">
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre, colegiado o código..."
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                        className="border rounded-lg px-3 py-2 text-sm text-gray-700 w-72"
-                    />
-                    <select
-                        value={filtroTipo}
-                        onChange={(e) => setFiltroTipo(e.target.value)}
-                        className="border rounded-lg px-3 py-2 text-sm text-gray-700"
-                    >
-                        <option value="">Todos los tipos</option>
-                        <option value="manual">Manual</option>
-                        <option value="automatico">Automático</option>
-                    </select>
-                    <select
-                        value={filtroProvincia}
-                        onChange={(e) => setFiltroProvincia(e.target.value)}
-                        className="border rounded-lg px-3 py-2 text-sm text-gray-700"
-                    >
-                        <option value="">Todas las provincias</option>
-                        {Object.entries(PROVINCIAS).map(([key, val]) => (
-                            <option key={key} value={key}>{val}</option>
-                        ))}
-                    </select>
-                    {(busqueda || filtroTipo || filtroProvincia) && (
-                        <button
-                            onClick={() => { setBusqueda(""); setFiltroTipo(""); setFiltroProvincia(""); }}
-                            className="text-xs text-gray-400 hover:text-gray-600 border rounded-lg px-3 py-2"
-                        >
-                            Limpiar filtros
+            {/* CONTENEDOR PRINCIPAL DIVIDIDO EN DOS COLUMNAS */}
+            <div className="flex h-[calc(100vh-4rem)] bg-[#f8fafc]">
+                
+                {/* COLUMNA IZQUIERDA: TABLA Y FILTROS */}
+                <div className="flex-1 p-8 overflow-y-auto space-y-6">
+                    
+                    {/* CABECERA DE LA SECCIÓN */}
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Todos los Sellos</h1>
+                        <button className="bg-[#2563eb] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2 shadow-xs">
+                            <span className="text-lg leading-none">+</span> Nuevo Sello
                         </button>
-                    )}
-                    <span className="self-center text-xs text-gray-400 ml-auto">
-                        {sellosFiltrados.length} sellos
-                    </span>
-                </div>
+                    </div>
 
-                {/* TABLA */}
-                <div className="bg-white border rounded-xl overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                            <tr>
-                                <th className="text-left px-4 py-3">Código</th>
-                                <th className="text-left px-4 py-3">Colegiado</th>
-                                <th className="text-left px-4 py-3">Nombre</th>
-                                <th className="text-left px-4 py-3">Apellidos</th>
-                                <th className="text-left px-4 py-3">Provincia</th>
-                                <th className="text-left px-4 py-3">Tipo</th>
-                                <th className="text-left px-4 py-3">Veces</th>
-                                <th className="text-left px-4 py-3">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {cargando ? (
-                                <tr>
-                                    <td colSpan={7} className="text-center py-8 text-gray-400">
-                                        Cargando...
-                                    </td>
+                    {/* BARRA DE FILTROS MINIMALISTA */}
+                    <div className="flex flex-wrap gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs">
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre, cody o código..."
+                            value={busqueda}
+                            onChange={(e) => setBusqueda(e.target.value)}
+                            className="flex-1 min-w-[200px] border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none transition"
+                        />
+                        <select
+                            value={filtroTipo}
+                            onChange={(e) => setFiltroTipo(e.target.value)}
+                            className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white cursor-pointer outline-none"
+                        >
+                            <option value="">Todos los tipos</option>
+                            <option value="manual">Manual</option>
+                            <option value="automatico">Automático</option>
+                        </select>
+                        <select
+                            value={filtroProvincia}
+                            onChange={(e) => setFiltroProvincia(e.target.value)}
+                            className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white cursor-pointer outline-none"
+                        >
+                            <option value="">Todas las provincias</option>
+                            {Object.entries(PROVINCIAS).map(([key, val]) => (
+                                <option key={key} value={key}>{val}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* TABLA DE SELLOS */}
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <th className="py-3 px-4">Código</th>
+                                    <th className="py-3 px-4">Colegiado</th>
+                                    <th className="py-3 px-4">Nombre</th>
+                                    <th className="py-3 px-4">Apellidos</th>
+                                    <th className="py-3 px-4">Provincia</th>
+                                    <th className="py-3 px-4">Tipo</th>
+                                    <th className="py-3 px-4">Veces</th>
+                                    <th className="py-3 px-4 text-center">Acción</th>
                                 </tr>
-                            ) : sellosFiltrados.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="text-center py-8 text-gray-400">
-                                        No hay sellos
-                                    </td>
-                                </tr>
-                            ) : (
-                                sellosFiltrados.map((s) => (
-                                    <tr key={s.id} className="hover:bg-gray-50 transition">
-                                        <td className="px-4 py-3 font-mono text-green-700">
-                                            {s.codigo_sello}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-500">
-                                            {s.numero_colegiado}
-                                        </td>
-                                        <td className="px-4 py-3">{s.nombre}</td>
-                                        <td className="px-4 py-3">
-                                            {s.apellido1} {s.apellido2}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-500">
-                                            {PROVINCIAS[s.prefijo_postal] ?? s.prefijo_postal}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                                s.tipo_sello === "manual"
-                                                    ? "bg-blue-50 text-blue-600"
-                                                    : "bg-purple-50 text-purple-600"
-                                            }`}>
-                                                {s.tipo_sello}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {s.veces_generado > 0 ? (
-                                                <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full font-medium">
-                                                    {s.veces_generado}x
-                                                </span>
-                                            ) : (
-                                                <span className="bg-green-50 text-green-600 text-xs px-2 py-1 rounded-full font-medium">
-                                                    1ª vez
-                                                </span>
-                                            )}
-                                        </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelloEditando(s);
-                                                                setFormEdit({
-                                                                    prefijo_postal:   s.prefijo_postal,
-                                                                    numero_colegiado: s.numero_colegiado,
-                                                                    nombre:           s.nombre,
-                                                                    apellido1:        s.apellido1,
-                                                                    apellido2:        s.apellido2 ?? "",
-                                                                    tipo_sello:       s.tipo_sello,
-                                                                });
-                                                            }}
-                                                            className="text-xs text-blue-400 hover:text-blue-600 border border-blue-200 rounded-lg px-3 py-1"
-                                                        >
-                                                            Editar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => eliminarSello(s.id)}
-                                                            className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-3 py-1"
-                                                        >
-                                                            Eliminar
-                                                        </button>
-                                                    </div>
-                                                </td>
+                            </thead>
+                            <tbody className="text-sm divide-y divide-slate-100 text-slate-700">
+                                {cargando ? (
+                                    <tr>
+                                        <td colSpan="8" className="text-center py-12 text-slate-400 animate-pulse">Cargando registros...</td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : sellosFiltrados.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="text-center py-12 text-slate-400">No se encontraron resultados</td>
+                                    </tr>
+                                ) : (
+                                    sellosFiltrados.map((s) => (
+                                        <tr 
+                                            key={s.id} 
+                                            onClick={() => seleccionarSello(s)}
+                                            className={`hover:bg-slate-50/80 cursor-pointer transition-colors ${selloSeleccionado?.id === s.id ? 'bg-blue-50/40 hover:bg-blue-50/60' : ''}`}
+                                        >
+                                            <td className="py-3.5 px-4 font-medium text-slate-900">{s.codigo_sello}</td>
+                                            <td className="py-3.5 px-4 text-slate-500">{s.numero_colegiado}</td>
+                                            <td className="py-3.5 px-4">{s.nombre}</td>
+                                            <td className="py-3.5 px-4">{s.apellido1} {s.apellido2}</td>
+                                            <td className="py-3.5 px-4 text-slate-500">{PROVINCIAS[s.prefijo_postal] || s.prefijo_postal}</td>
+                                            <td className="py-3.5 px-4">
+                                                <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md border ${
+                                                    s.tipo_sello === 'complete' || s.tipo_sello === 'automatico'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                }`}>
+                                                    {s.tipo_sello === 'manual' ? 'en proceso' : 'completo'}
+                                                </span>
+                                            </td>
+                                            <td className="py-3.5 px-4 font-medium">{s.veces_generado || 1}</td>
+                                            <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <button onClick={() => seleccionarSello(s)} className="text-slate-400 hover:text-slate-600 transition">
+                                                        👁️
+                                                    </button>
+                                                    <button onClick={() => eliminarSello(s.id)} className="text-rose-400 hover:text-rose-600 transition">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-            {selloEditando && (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl p-6 space-y-4 w-96">
-            <h2 className="text-sm font-semibold text-gray-700">
-                Editar Sello — {selloEditando.codigo_sello}
-            </h2>
 
-            <div className="grid grid-cols-2 gap-2">
-                <Input placeholder="Prefijo postal" value={formEdit.prefijo_postal}
-                    onChange={(e) => setFormEdit({ ...formEdit, prefijo_postal: e.target.value })} />
-                <Input placeholder="Número colegiado" value={formEdit.numero_colegiado}
-                    onChange={(e) => setFormEdit({ ...formEdit, numero_colegiado: e.target.value })} />
-                <Input placeholder="Nombre" value={formEdit.nombre}
-                    onChange={(e) => setFormEdit({ ...formEdit, nombre: e.target.value })} />
-                <Input placeholder="Apellido 1" value={formEdit.apellido1}
-                    onChange={(e) => setFormEdit({ ...formEdit, apellido1: e.target.value })} />
-            </div>
-            <Input placeholder="Apellido 2 (opcional)" value={formEdit.apellido2}
-                onChange={(e) => setFormEdit({ ...formEdit, apellido2: e.target.value })} />
+                {/* COLUMNA DERECHA: PANEL DE EDICIÓN FIJO */}
+                <div className="w-96 bg-white border-l border-slate-200 p-6 flex flex-col justify-between shadow-xs">
+                    {selloSeleccionado ? (
+                        <div className="space-y-6 overflow-y-auto pr-1">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900">Editar Sello</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">ID Registro: #{selloSeleccionado.id}</p>
+                            </div>
 
-            <SelectorToggle
-                value={formEdit.tipo_sello}
-                onChange={(val) => setFormEdit({ ...formEdit, tipo_sello: val })}
-                options={[
-                    { value: "manual", label: "Manual" },
-                    { value: "automatico", label: "Automático" },
-                ]}
-            />
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-600">Código de Sello</label>
+                                    <Input 
+                                        value={selloSeleccionado.codigo_sello} 
+                                        disabled 
+                                        className="bg-slate-50 text-slate-500 font-mono cursor-not-allowed"
+                                    />
+                                </div>
 
-            <div className="flex gap-2 justify-end">
-                <button
-                    onClick={() => setSelloEditando(null)}
-                    className="text-xs text-gray-400 hover:text-gray-600 border rounded-lg px-3 py-2"
-                >
-                    Cancelar
-                </button>
-                <Button variant="primary" onClick={guardarEdicion}>
-                    Guardar
-                </Button>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-600">Colegiado</label>
+                                    <Input 
+                                        value={formEdit.numero_colegiado || ""} 
+                                        onChange={(e) => setFormEdit({ ...formEdit, numero_colegiado: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-600">Nombre</label>
+                                    <Input 
+                                        value={formEdit.nombre || ""} 
+                                        onChange={(e) => setFormEdit({ ...formEdit, nombre: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-600">Apellidos</label>
+                                    <Input 
+                                        value={`${formEdit.apellido1 || ""} ${formEdit.apellido2 || ""}`.trim()} 
+                                        onChange={(e) => {
+                                            const [ap1, ...ap2] = e.target.value.split(" ");
+                                            setFormEdit({ ...formEdit, apellido1: ap1, apellido2: ap2.join(" ") });
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-slate-600">Provincia</label>
+                                    <select
+                                        value={formEdit.prefijo_postal || ""}
+                                        onChange={(e) => setFormEdit({ ...formEdit, prefijo_postal: e.target.value })}
+                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-blue-500 transition"
+                                    >
+                                        <option value="">Select</option>
+                                        {Object.entries(PROVINCIAS).map(([key, val]) => (
+                                            <option key={key} value={key}>{val}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-slate-600 block">Tipo</label>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                            <input 
+                                                type="radio" 
+                                                name="tipo_sello" 
+                                                value="manual"
+                                                checked={formEdit.tipo_sello === "manual"}
+                                                onChange={() => setFormEdit({ ...formEdit, tipo_sello: "manual" })}
+                                                className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                                            />
+                                            Manual
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                            <input 
+                                                type="radio" 
+                                                name="tipo_sello" 
+                                                value="automatico"
+                                                checked={formEdit.tipo_sello === "automatico" || formEdit.tipo_sello === "complete"}
+                                                onChange={() => setFormEdit({ ...formEdit, tipo_sello: "automatico" })}
+                                                className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                                            />
+                                            Automático
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 space-y-2">
+                                <Button className="w-full bg-[#2563eb] hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition" onClick={guardarEdicion}>
+                                    Guardar Sello
+                                </Button>
+                                <button 
+                                    onClick={() => seleccionarSello(sellos[0])}
+                                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-lg text-sm font-semibold transition"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                            Selecciona un sello para editarlo
+                        </div>
+                    )}
+                </div>
+
             </div>
-        </div>
-    </div>
-)}
         </Layout>
     );
 }

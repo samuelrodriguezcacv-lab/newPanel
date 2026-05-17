@@ -6,9 +6,11 @@ export default function Input({
   placeholder = "",
   disabled = false,
   className = "",
+  ...props
 }) {
   return (
     <input
+      {...props}
       type={type}
       name={name}
       value={value}

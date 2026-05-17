@@ -3,14 +3,21 @@ import { usePage, router } from '@inertiajs/react';
 import Layout from '../../Template/LayaoutNav';
 
 export default function Index() {
-    const { metacrilatos, tiposCentro } = usePage().props;
-
+    const { metacrilatos = [], tiposCentro = [] } = usePage().props;
+    const { url } = usePage();
+const params = new URLSearchParams(url.split('?')[1]);
+const tareaLogisticaId = params.get('tarea_logistica_id');
+console.log(tiposCentro);
     const [form, setForm] = useState({
         tipo_centro: '',
         codigo_registro: '',
+        tarea_logistica_id: tareaLogisticaId,
     });
     const [errors, setErrors] = useState({});
     const [guardando, setGuardando] = useState(false);
+
+
+
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -90,21 +97,17 @@ export default function Index() {
                             </div>
                         </div>
 
-                        {/* PREVIEW */}
-                        {form.tipo_centro && form.codigo_registro && (
-                            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Preview</p>
-                                <div className="text-center">
-                                    <p className="font-bold text-gray-800 text-lg">{form.tipo_centro}</p>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        homologado e inscrito en el Registro Andaluz de Centros Veterinarios de Animales de Compañía como
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700 mt-2">
-                                        Nº de registro: <span className="font-bold">{form.codigo_registro}</span>
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+{/* PREVIEW */}
+{form.tipo_centro && form.codigo_registro && (
+    <div className="mb-4 space-y-2">
+        <p className="text-xs text-gray-400 uppercase tracking-wide">Vista previa</p>
+        <iframe
+            src={`/metacrilatos/preview?tipo_centro=${encodeURIComponent(form.tipo_centro)}&codigo_registro=${encodeURIComponent(form.codigo_registro)}`}
+            className="w-full h-96 rounded-xl border border-gray-200 shadow-sm"
+            title="Vista previa del metacrilato"
+        />
+    </div>
+)}
 
                         <div className="flex justify-end">
                             <button

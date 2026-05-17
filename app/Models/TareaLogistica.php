@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Sello;
+use App\Models\Tarea as TareaModel;
 
 class TareaLogistica extends Model
 {
@@ -14,6 +16,7 @@ class TareaLogistica extends Model
         'descripcion',
         'estado',
         'tarea_sellos',
+        'pedido_id', // 🔴 ESTO ES CLAVE
     ];
 
     // Tipos disponibles
@@ -38,4 +41,16 @@ class TareaLogistica extends Model
     {
         return $this->hasMany(Sello::class, 'tarea', 'tarea_sellos');
     }
+
+    public function tareas()
+{
+    return $this->hasMany(TareaModel::class, 'tarea_logistica_id');
+}
+
+public function pedido()
+{
+    return $this->belongsTo(Pedido::class);
+}
+
+    
 }

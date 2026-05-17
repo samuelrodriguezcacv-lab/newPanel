@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\TareaLogistica;
 
 class Pedido extends Model
 {
@@ -10,6 +11,6 @@ class Pedido extends Model
 
     public function tareas()
     {
-        return $this->hasMany(Tarea::class);
+         return $this->hasMany(TareaLogistica::class);
     }
 }
