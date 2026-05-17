@@ -2,7 +2,7 @@ import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
 import { usePage, Link } from '@inertiajs/react' // <-- Importamos Link desde Inertia
 import { Home, Stamp, Settings, ClipboardList, Box, SquareCheckBig, Truck, Layers, ListTodo, LogOut } from "lucide-react" // <-- Importamos el icono LogOut
-
+import logo from "../../../..//public/build/assets/raia.png";
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
   const { url } = usePage()
@@ -22,7 +22,7 @@ export default function Sidebar() {
     ">
       {/* SECCIÓN SUPERIOR: MENÚS */}
       <div>
-        <h2 className="text-lg font-bold mb-6 text-gray-800">Mi App</h2>
+          <img src={logo} alt="Logo" className="w-100 h-12 mb-4" />
 
         <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2 tracking-wider">
           Herramientas
