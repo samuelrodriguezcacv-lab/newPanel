@@ -1,84 +1,82 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\TestSelloController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController; // <--- Importamos el controlador
+use App\Http\Controllers\OrdenProveedorController;
 use App\Http\Controllers\AllSellosController;
-use App\Http\Controllers\PedidoController;
-use App\Http\Controllers\TareaController;
-use App\Http\Controllers\ProveedorController;
-use App\Http\Controllers\OrdenCompraColegioController;
 use App\Http\Controllers\TareaLogisticaController;
-use App\Http\Controllers\MetacrilatoController;
-
 
 use Inertia\Inertia;
 
-// VISTAS INERTIA
+/*
+|--------------------------------------------------------------------------
+| PUBLIC & BREEZE AUTH
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/auth.php';
+
 Route::get('/', fn() => Inertia::render('Home'));
-Route::get('/sellos/dashboard-sellos', fn() => Inertia::render('Sellos/Dashboard/DashboardSellos'));
-Route::get('/sellos/pedidos/nuevo-pedido', fn() => Inertia::render('Sellos/Pedidos/NuevoPedido'));
-Route::get('/sellos/pedidos', fn() => Inertia::render('Sellos/Pedidos/PedidosList'));
-Route::get('/sellos/tareas', fn() => Inertia::render('Sellos/Tareas/TareasList'));
-Route::get('/sellos/gestion/todos', fn() => Inertia::render('Sellos/GestionSellos/TodosSellos'));
-Route::get('/sellos/gestion/repetidos', fn() => Inertia::render('Sellos/GestionSellos/SellosRepetidos'));
-Route::get('/sellos/gestion/provincia', fn() => Inertia::render('Sellos/GestionSellos/SellosPorProvincia'));
 
+/*
+|--------------------------------------------------------------------------
+| AUTH PROTECTED AREA (Toda tu App)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'verified'])->group(function () {
 
-// Tareas logistica
-Route::resource('tareas-logistica', TareaLogisticaController::class)
-    ->only(['index', 'store', 'update', 'destroy']);
-Route::get('/tareas-logistica', [TareaLogisticaController::class, 'index']);
-Route::get('/metricas', [PedidoController::class, 'metricas']);
-Route::get('/sellos-repetidos', [AllSellosController::class, 'repetidos']);
-// Vista Pedidos Proveedores
+    // El Dashboard ahora es una sola línea súper limpia
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-Route::get('/api-n8n/tareas-logistica', [TareaLogisticaController::class, 'apiIndex']);
-Route::get('/api-n8n/metricas', [PedidoController::class, 'metricas']);
-Route::get('/api-n8n/sellos-repetidos', [AllSellosController::class, 'repetidos']);
+    /*
+    |--- PROFILE (Breeze) ---
+    */
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    
+    // Ruta 1: La que pide el borrador del texto para el textarea de React
+Route::post('/envio-proveedores/pedidos/preparar-borrador', [OrdenProveedorController::class, 'prepararBorrador']);
+Route::get('/envio-proveedores/pedido/{id}/enviar', [OrdenProveedorController::class, 'vistaEnvio']);
+Route::post('/envio-proveedores/pedido/{id}/enviar', [OrdenProveedorController::class, 'enviarDesdePanel']);
 
-// OPCIÓN CORRECTA
-Route::get('envio-proveedores/dashboard-orden-proveedores', [ProveedorController::class, 'index']);
-//Ruta CRUD Proveedores
-// Opción A: Usar la ruta que ya tienes (Recomendado para que funcione el recurso)
-Route::resource('proveedores', ProveedorController::class)->except(['index']);
+// Ruta 2: La que ya tienes que guarda en BD y envía el correo definitivo
+Route::post('/envio-proveedores/pedidos', [OrdenProveedorController::class, 'store']);
+    
+ Route::prefix('sellos')->group(function () {
 
-Route::get('envio-proveedores/dashboard-orden-proveedores', [ProveedorController::class, 'index']);
-Route::post('envio-proveedores/pedidos', [ProveedorController::class, 'crearPedido'])->name('pedidos.crear');
-Route::get('envio-proveedores/pedidos/{id}/pdf', [ProveedorController::class, 'generarPdf'])->name('pedidos.pdf');
+    // CRUD sellos
+    Route::get('/', [AllSellosController::class, 'index']);
+    Route::post('/', [AllSellosController::class, 'store']);
+    Route::put('/{id}', [AllSellosController::class, 'update']);
 
-// API PEDIDOS
-Route::get('/pedidos', [PedidoController::class, 'index']);
-Route::post('/pedidos', [PedidoController::class, 'store']);
-Route::get('/pedidos/{id}', [PedidoController::class, 'show']);
+});
 
-// API TAREAS
-Route::get('/tareas', [TareaController::class, 'index']);
-Route::post('/tareas', [TareaController::class, 'store']);
-Route::put('/tareas/{id}', [TareaController::class, 'update']);
-Route::post('/tareas/{id}/sellos', [TareaController::class, 'asignarSellos']);
+Route::prefix('tareas-logistica')->group(function () {
 
-// API SELLOS
-Route::post('/sellos', [AllSellosController::class, 'store']);
-Route::get('/api-sellos/todos', [AllSellosController::class, 'index']);
-Route::get('/api-sellos/repetidos', [AllSellosController::class, 'repetidos']);
-Route::get('/api-sellos/por-provincia', [AllSellosController::class, 'porProvincia']);
-Route::post('/sellos/buscar', [AllSellosController::class, 'buscar']);
+    Route::get('/', [TareaLogisticaController::class, 'index']);
+    Route::post('/', [TareaLogisticaController::class, 'store']);
 
-Route::post('/pedidos/{id}/cerrar', [PedidoController::class, 'cerrar']);
-Route::put('/pedidos/{id}/estado', [PedidoController::class, 'actualizarEstado']);
+    Route::put('/{id}', [TareaLogisticaController::class, 'update']);
+    Route::delete('/{id}', [TareaLogisticaController::class, 'destroy']);
 
-Route::delete('/tareas/{tareaId}/sellos/{selloId}', [TareaController::class, 'eliminarSello']);
-Route::delete('/tareas/{id}', [TareaController::class, 'destroy']);
-Route::put('/sellos/{id}', [AllSellosController::class, 'update']);
+    // 🔥 CLAVE: asignar sellos a tarea logística
+    Route::post('/{id}/sellos', [TareaLogisticaController::class, 'asignarSellos']);
 
-Route::get('/dashboard/metricas', [PedidoController::class, 'metricas']);
+    // estado
+    Route::put('/{id}/estado', [TareaLogisticaController::class, 'update']);
+});
 
-Route::get('metacrilatos', [MetacrilatoController::class, 'index'])->name('metacrilatos.index');
-Route::post('metacrilatos', [MetacrilatoController::class, 'store'])->name('metacrilatos.store');
-Route::get('metacrilatos/{id}/pdf', [MetacrilatoController::class, 'generarPdf'])->name('metacrilatos.pdf');
-Route::delete('metacrilatos/{id}', [MetacrilatoController::class, 'destroy'])->name('metacrilatos.destroy');
-
-
-
-
+/*
+    |--------------------------------------------------------------------------
+    | CARGA MODULAR DE RUTAS (Tus módulos limpios)
+    |--------------------------------------------------------------------------
+    */
+    // require __DIR__.'/sellos.php';
+    require __DIR__.'/logistica.php';
+    require __DIR__.'/proveedores.php';
+    require __DIR__.'/pedidos.php';
+    require __DIR__.'/metacrilatos.php';
+    require __DIR__.'/tareas.php';
+});

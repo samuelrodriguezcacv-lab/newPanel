@@ -10,8 +10,7 @@ class TareaController extends Controller
 {
     public function index()
     {
-        $tareas = TareaModel::with('sellos')->get();
-        return response()->json($tareas, 200);
+     $tareas = TareaModel::with(['sellos', 'tareaLogistica'])->get();
     }
 
 public function store(Request $request)
@@ -25,6 +24,7 @@ public function store(Request $request)
             'pedido_id'  => 'nullable|exists:pedidos,id',
             'sellos'     => 'nullable|array|max:18',
             'sellos.*'   => 'exists:All_sellos,id',
+            'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id', // 
         ]);
 
         $tarea = TareaModel::create([
@@ -33,6 +33,7 @@ public function store(Request $request)
             'estado'     => $request->estado,
             'provincia'  => $request->provincia,
             'pedido_id'  => $request->pedido_id,
+            'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id', // 
         ]);
 
         if ($request->has('sellos')) {
@@ -107,6 +108,8 @@ public function update(Request $request, $id)
 
     return response()->json($tarea->load('sellos'), 200);
 }
+
+
 
 
 }

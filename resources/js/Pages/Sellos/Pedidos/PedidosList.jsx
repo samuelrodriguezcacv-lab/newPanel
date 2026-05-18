@@ -1,7 +1,9 @@
+// PedidosList.jsx
 import Layout from "../../../Template/LayaoutNav.jsx";
-import { useState, useEffect } from "react";
-import { getPedidosApi, getPedidoApi, actualizarEstadoPedidoApi,eliminarSelloApi,eliminarTareaApi    } from "../../../Services/pedidoService";
+import { useState, useEffect, useRef } from "react";
+import { getPedidosApi, getPedidoApi, actualizarEstadoPedidoApi, eliminarSelloApi, eliminarTareaApi } from "../../../Services/pedidoService";
 import { generarPdfPedido } from "../../../Utils/generarPdfPedido.js";
+import { usePage } from "@inertiajs/react";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -14,12 +16,11 @@ export default function PedidosList() {
     const [filtroProvincia, setFiltroProvincia] = useState("");
     const [pedidoDetalle, setPedidoDetalle] = useState(null);
     const [cargando, setCargando] = useState(true);
-    const cambiarEstadoPedido = async (pedido, estado) => {
-    await actualizarEstadoPedidoApi(pedido.id, estado);
-    setPedidos(pedidos.map((p) =>
-        p.id === pedido.id ? { ...p, estado } : p
-    ));
-};
+
+    const { url } = usePage();
+    const params = new URLSearchParams(url.split('?')[1]);
+    const resaltar = params.get('resaltar');
+    const resaltadoRef = useRef(null);
 
     useEffect(() => {
         getPedidosApi().then((res) => {
@@ -28,12 +29,39 @@ export default function PedidosList() {
         });
     }, []);
 
+    useEffect(() => {
+        if (resaltadoRef.current) {
+            resaltadoRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }, [pedidos]);
+
+    const cambiarEstadoPedido = async (pedido, estado) => {
+        await actualizarEstadoPedidoApi(pedido.id, estado);
+        setPedidos(pedidos.map((p) =>
+            p.id === pedido.id ? { ...p, estado } : p
+        ));
+    };
+
     const verDetalle = async (p) => {
         if (pedidoDetalle?.id === p.id) {
             setPedidoDetalle(null);
             return;
         }
         const res = await getPedidoApi(p.id);
+        setPedidoDetalle(res.data);
+    };
+
+    const eliminarSello = async (tareaId, selloId) => {
+        if (!confirm("¿Eliminar este sello de la tarea?")) return;
+        await eliminarSelloApi(tareaId, selloId);
+        const res = await getPedidoApi(pedidoDetalle.id);
+        setPedidoDetalle(res.data);
+    };
+
+    const eliminarTarea = async (tareaId) => {
+        if (!confirm("¿Eliminar esta tarea y todos sus sellos?")) return;
+        await eliminarTareaApi(tareaId);
+        const res = await getPedidoApi(pedidoDetalle.id);
         setPedidoDetalle(res.data);
     };
 
@@ -45,225 +73,203 @@ export default function PedidosList() {
         return coincideFecha && coincideProvincia;
     });
 
-    const eliminarSello = async (tareaId, selloId) => {
-    if (!confirm("¿Eliminar este sello de la tarea?")) return;
-    await eliminarSelloApi(tareaId, selloId);
-    const res = await getPedidoApi(pedidoDetalle.id);
-    setPedidoDetalle(res.data);
-};
-
-
-const eliminarTarea = async (tareaId) => {
-    if (!confirm("¿Eliminar esta tarea y todos sus sellos?")) return;
-    await eliminarTareaApi(tareaId);
-    const res = await getPedidoApi(pedidoDetalle.id);
-    setPedidoDetalle(res.data);
-};
-
     return (
         <Layout>
-            <div className="p-6 space-y-6">
-                <h1 className="text-2xl font-bold text-gray-900">Lista de Pedidos</h1>
+            <div className="p-6 max-w-5xl mx-auto space-y-6">
+
+                {/* CABECERA */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gestión de Pedidos</h1>
+                        <p className="text-sm text-gray-500">Visualiza, filtra y administra las tareas y sellos de cada pedido.</p>
+                    </div>
+                    <span className="self-start sm:self-center text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100">
+                        {pedidosFiltrados.length} pedidos en total
+                    </span>
+                </div>
 
                 {/* FILTROS */}
-                <div className="flex gap-4 bg-white border rounded-xl p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white border border-gray-200 p-4 rounded-xl shadow-sm items-end">
                     <div className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500">Fecha</label>
-                        <input
-                            type="date"
-                            value={filtroFecha}
+                        <label className="text-xs font-medium text-gray-600">Filtrar por Fecha</label>
+                        <input type="date" value={filtroFecha}
                             onChange={(e) => setFiltroFecha(e.target.value)}
-                            className="border rounded-lg px-3 py-2 text-sm text-gray-700"
-                        />
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"/>
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500">Provincia</label>
-                        <select
-                            value={filtroProvincia}
-                            onChange={(e) => setFiltroProvincia(e.target.value)}
-                            className="border rounded-lg px-3 py-2 text-sm text-gray-700"
-                        >
-                            <option value="">Todas</option>
+                        <label className="text-xs font-medium text-gray-600">Filtrar por Provincia</label>
+                        <select value={filtroProvincia} onChange={(e) => setFiltroProvincia(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition">
+                            <option value="">Todas las provincias</option>
                             {Object.entries(PROVINCIAS).map(([key, val]) => (
                                 <option key={key} value={key}>{val}</option>
                             ))}
                         </select>
                     </div>
                     {(filtroFecha || filtroProvincia) && (
-                        <button
-                            onClick={() => { setFiltroFecha(""); setFiltroProvincia(""); }}
-                            className="self-end text-xs text-gray-400 hover:text-gray-600 border rounded-lg px-3 py-2"
-                        >
+                        <button onClick={() => { setFiltroFecha(""); setFiltroProvincia(""); }}
+                            className="w-full text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/70 border border-red-200 rounded-lg py-2 transition">
                             Limpiar filtros
                         </button>
                     )}
                 </div>
 
-                {/* TABLA PEDIDOS */}
-                <div className="bg-white border rounded-xl overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                            <tr>
-                                <th className="text-left px-4 py-3">Pedido</th>
-                                <th className="text-left px-4 py-3">Fecha</th>
-                                <th className="text-left px-4 py-3">Tareas</th>
-                                <th className="text-left px-4 py-3">Sellos</th>
-                                <th className="text-left px-4 py-3">Acciones</th>
-                                <th className="text-left px-4 py-3">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {cargando ? (
-                                <tr>
-                                    <td colSpan={5} className="text-center py-8 text-gray-400">
-                                        Cargando...
-                                    </td>
-                                </tr>
-                            ) : pedidosFiltrados.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="text-center py-8 text-gray-400">
-                                        No hay pedidos
-                                    </td>
-                                </tr>
-                            ) : (
-                                pedidosFiltrados.map((p) => (
-                                    <>
-                                        <tr key={p.id} className="hover:bg-gray-50 transition">
-                                            <td className="px-4 py-3 font-semibold text-gray-700">
-                                                Pedido {p.numero_pedido}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-500">{p.fecha}</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full">
-                                                    {p.tareas?.length ?? 0} tareas
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-green-50 text-green-600 text-xs px-2 py-1 rounded-full">
-                                                    {p.tareas?.reduce((acc, t) => acc + (t.sellos?.length ?? 0), 0)} sellos
-                                                </span>
-                                            </td>
-                                         <td className="px-4 py-3">
-    <div className="flex gap-2">
-        <button
-            onClick={() => verDetalle(p)}
-            className="text-xs text-gray-400 hover:text-gray-600 border rounded-lg px-3 py-1"
-        >
-            {pedidoDetalle?.id === p.id ? "Ocultar" : "Ver detalle"}
-        </button>
-        <button
-            onClick={async () => {
-                const res = await getPedidoApi(p.id);
-                generarPdfPedido(res.data);
-            }}
-            className="text-xs text-green-600 hover:text-green-800 border border-green-200 rounded-lg px-3 py-1"
-        >
-            PDF
-        </button>
-    </div>
-</td>
-                                      <td className="px-4 py-3">
-                                                <select
-                                                    value={p.estado ?? 'abierto'}
-                                                    onChange={(e) => cambiarEstadoPedido(p, e.target.value)}
-                                                    className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${
-                                                        p.estado === 'cerrado' ? 'bg-red-50 text-red-600' :
-                                                        p.estado === 'enviado' ? 'bg-blue-50 text-blue-600' :
-                                                        'bg-green-50 text-green-600'
-                                                    }`}
-                                                >
-                                                    <option value="abierto">abierto</option>
-                                                    <option value="cerrado">cerrado</option>
-                                                    <option value="enviado">enviado</option>
-                                                </select>
-                                            </td>
-                                                                                    </tr>
-
-                                        {/* DETALLE DEL PEDIDO */}
-                               {pedidoDetalle?.id === p.id && (
-    <tr key={`detalle-${p.id}`}>
-        <td colSpan={6} className="px-4 py-4 bg-gray-50">
-            <div className="space-y-4">
-                {pedidoDetalle.tareas?.map((t) => (
-                    <div key={t.id} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-700">
-                                Tarea {t.Tarea}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                                {PROVINCIAS[t.provincia]}
-                            </span>
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                t.estado === "pendiente"
-                                    ? "bg-yellow-50 text-yellow-600"
-                                    : t.estado === "en_proceso"
-                                    ? "bg-blue-50 text-blue-600"
-                                    : "bg-green-50 text-green-600"
-                            }`}>
-                                {t.estado}
-                            </span>
-                            <button
-                                onClick={() => eliminarTarea(t.id)}
-                                className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-2 py-1 ml-auto"
-                            >
-                                Eliminar tarea
-                            </button>
+                {/* LISTA DE PEDIDOS */}
+                <div className="space-y-4">
+                    {cargando ? (
+                        <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-xl shadow-sm">
+                            <span className="inline-block animate-pulse font-medium">Cargando listado de pedidos...</span>
                         </div>
+                    ) : pedidosFiltrados.length === 0 ? (
+                        <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-xl shadow-sm">
+                            <p className="font-medium">No se encontraron pedidos con los filtros aplicados.</p>
+                        </div>
+                    ) : (
+                        pedidosFiltrados.map((p) => {
+                            const esAbierto = pedidoDetalle?.id === p.id;
+                            const totalSellos = p.tareas?.reduce((acc, t) => acc + (t.sellos?.length ?? 0), 0) ?? 0;
+                            const esResaltado = String(p.numero_pedido) === String(resaltar);
 
-                        {t.sellos?.length > 0 ? (
-                            <table className="w-full text-sm border rounded-xl overflow-hidden">
-                                <thead className="bg-white text-gray-500 text-xs uppercase">
-                                    <tr>
-                                        <th className="text-left px-4 py-2">Código</th>
-                                        <th className="text-left px-4 py-2">Colegiado</th>
-                                        <th className="text-left px-4 py-2">Nombre</th>
-                                        <th className="text-left px-4 py-2">Apellidos</th>
-                                        <th className="text-left px-4 py-2">Tipo</th>
-                                        <th className="text-left px-4 py-2">Acción</th> 
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {t.sellos.map((s) => (
-                                        <tr key={s.id} className="bg-white hover:bg-gray-50">
-                                            <td className="px-4 py-2 font-mono text-green-700">{s.codigo_sello}</td>
-                                            <td className="px-4 py-2">{s.numero_colegiado}</td>
-                                            <td className="px-4 py-2">{s.nombre}</td>
-                                            <td className="px-4 py-2">{s.apellido1} {s.apellido2}</td>
-                                            <td className="px-4 py-2">
-                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                                    s.tipo_sello === "manual"
-                                                        ? "bg-blue-50 text-blue-600"
-                                                        : "bg-purple-50 text-purple-600"
+                            return (
+                                <div
+                                    key={p.id}
+                                    ref={esResaltado ? resaltadoRef : null}
+                                    className={`bg-white border rounded-xl overflow-hidden shadow-sm transition-all duration-200 ${
+                                        esAbierto ? 'ring-2 ring-blue-500/30 border-blue-400' : 'hover:border-gray-300'
+                                    } ${
+                                        esResaltado ? 'ring-2 ring-yellow-400 border-yellow-300 bg-yellow-50/40' : ''
+                                    }`}
+                                >
+                                    {/* CABECERA TARJETA */}
+                                    <div className="p-4 flex flex-wrap items-center justify-between gap-4 bg-white border-b border-gray-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm ${
+                                                esResaltado ? 'bg-yellow-100 border border-yellow-300 text-yellow-800' : 'bg-gray-50 border border-gray-200 text-gray-700'
+                                            }`}>
+                                                #{p.numero_pedido}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Pedido corporativo</h3>
+                                                <p className="text-xs text-gray-400">{p.fecha}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-md border border-blue-100">
+                                                {p.tareas?.length ?? 0} tareas
+                                            </span>
+                                            <span className="bg-purple-50 text-purple-700 text-xs font-medium px-2.5 py-1 rounded-md border border-purple-100">
+                                                {totalSellos} sellos
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 ml-auto sm:ml-0">
+                                            <select value={p.estado ?? 'abierto'}
+                                                onChange={(e) => cambiarEstadoPedido(p, e.target.value)}
+                                                className={`text-xs px-3 py-1.5 rounded-lg font-semibold border shadow-sm cursor-pointer transition outline-none ${
+                                                    p.estado === 'cerrado' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                    p.estado === 'enviado' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    'bg-green-50 text-green-700 border-green-200'
                                                 }`}>
-                                                    {s.tipo_sello}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-2">
+                                                <option value="abierto">Abierto</option>
+                                                <option value="cerrado">Cerrado</option>
+                                                <option value="enviado">Enviado</option>
+                                            </select>
+
                                             <button
-                                                onClick={() => eliminarSello(t.id, s.id)}
-                                                className="text-xs text-red-400 hover:text-red-600"
-                                            >
-                                                Eliminar
+                                                onClick={async () => {
+                                                    const res = await getPedidoApi(p.id);
+                                                    generarPdfPedido(res.data);
+                                                }}
+                                                className="text-xs font-medium text-gray-700 hover:text-gray-900 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm hover:bg-gray-50 transition">
+                                                PDF
                                             </button>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-xs text-gray-400 px-4">Sin sellos</p>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </td>
-    </tr>
-)}
-                                    </>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+
+                                            <button onClick={() => verDetalle(p)}
+                                                className={`text-xs font-medium rounded-lg px-3 py-1.5 transition ${
+                                                    esAbierto
+                                                        ? 'bg-gray-100 text-gray-700 border border-gray-300'
+                                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                                }`}>
+                                                {esAbierto ? "Ocultar" : "Ver detalles"}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* DETALLE DESPLEGABLE */}
+                                    {esAbierto && pedidoDetalle && (
+                                        <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-6">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desglose de tareas del pedido</h4>
+
+                                            {pedidoDetalle.tareas?.map((t) => (
+                                                <div key={t.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-semibold text-gray-800 text-sm">Tarea: {t.Tarea}</span>
+                                                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium">
+                                                                {PROVINCIAS[t.provincia] || "Sin provincia"}
+                                                            </span>
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                                                                t.estado === "pendiente" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
+                                                                t.estado === "en_proceso" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                                                "bg-green-50 text-green-700 border-green-200"
+                                                            }`}>
+                                                                {t.estado}
+                                                            </span>
+                                                        </div>
+                                                        <button onClick={() => eliminarTarea(t.id)}
+                                                            className="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/50 border border-red-100 rounded-lg px-2.5 py-1 transition">
+                                                            Eliminar Tarea
+                                                        </button>
+                                                    </div>
+
+                                                    {t.sellos?.length > 0 ? (
+                                                        <div className="border border-gray-100 rounded-lg overflow-hidden">
+                                                            <table className="w-full text-left text-xs text-gray-600">
+                                                                <thead className="bg-gray-50 text-gray-500 font-semibold uppercase border-b border-gray-100">
+                                                                    <tr>
+                                                                        <th className="px-3 py-2">Código</th>
+                                                                        <th className="px-3 py-2">Colegiado</th>
+                                                                        <th className="px-3 py-2">Profesional</th>
+                                                                        <th className="px-3 py-2">Tipo</th>
+                                                                        <th className="px-3 py-2 text-right">Acción</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-gray-100">
+                                                                    {t.sellos.map((s) => (
+                                                                        <tr key={s.id} className="hover:bg-gray-50/80 transition">
+                                                                            <td className="px-3 py-2.5 font-mono font-medium text-blue-700">{s.codigo_sello}</td>
+                                                                            <td className="px-3 py-2.5 text-gray-700">{s.numero_colegiado}</td>
+                                                                            <td className="px-3 py-2.5">{s.nombre} {s.apellido1} {s.apellido2}</td>
+                                                                            <td className="px-3 py-2.5">
+                                                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                                                                                    s.tipo_sello === "manual" ? "bg-gray-100 text-gray-700" : "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                                                                }`}>
+                                                                                    {s.tipo_sello}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-3 py-2.5 text-right">
+                                                                                <button onClick={() => eliminarSello(t.id, s.id)}
+                                                                                    className="text-red-500 hover:text-red-700 font-medium hover:underline">
+                                                                                    Quitar
+                                                                                </button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-gray-400 italic">No hay sellos asociados a esta tarea.</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
         </Layout>
