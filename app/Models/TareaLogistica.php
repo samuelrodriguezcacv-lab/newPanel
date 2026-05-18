@@ -16,6 +16,7 @@ class TareaLogistica extends Model
         'descripcion',
         'estado',
         'tarea_sellos',
+        'provincia',
         'pedido_id', // 🔴 ESTO ES CLAVE
     ];
 
@@ -47,10 +48,10 @@ class TareaLogistica extends Model
     return $this->hasMany(TareaModel::class, 'tarea_logistica_id');
 }
 
-public function pedido()
-{
-    return $this->belongsTo(Pedido::class);
-}
+    public function pedido()
+    {
+        return $this->belongsTo(Pedido::class);
+    }
 
     
 }

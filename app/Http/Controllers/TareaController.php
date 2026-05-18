@@ -4,36 +4,40 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Sellos\TareaModel;  // ← corregido, usaba "Tarea" que no existe
+use App\Models\Sellos\TareaSellosModel;
+use App\Models\Sellos\AllSellosModel;
 
 class TareaController extends Controller
 {
     public function index()
     {
-     $tareas = TareaModel::with(['sellos', 'tareaLogistica'])->get();
+        $tareas = TareaSellosModel::with(['sellos', 'tareaLogistica', 'pedido'])->get();
+        return response()->json($tareas, 200);
     }
 
 public function store(Request $request)
 {
     try {
         $request->validate([
-            'Tarea'      => 'required|integer|unique:tareas,Tarea',
-            'fecha'      => 'required|date',
-            'estado'     => 'required|in:pendiente,en_proceso,completada',
-            'provincia'  => 'required|integer|in:4,11,14,18,21,23,29,41',
-            'pedido_id'  => 'nullable|exists:pedidos,id',
-            'sellos'     => 'nullable|array|max:18',
-            'sellos.*'   => 'exists:All_sellos,id',
-            'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id', // 
+            'Tarea'               => 'required|integer',
+            'fecha'               => 'required|date',
+            'estado'              => 'required|in:pendiente,en_proceso,completada',
+            'provincia'           => 'required|integer|in:4,11,14,18,21,23,29,41',
+            'pedido_id'           => 'nullable|exists:pedidos,id',
+            'tareas_logistica_id' => 'nullable|exists:tareas_logistica,id',
+            'tarea_id'            => 'nullable|integer',
+            'sellos'              => 'nullable|array|max:18',
+            'sellos.*'            => 'exists:All_sellos,id',
         ]);
 
-        $tarea = TareaModel::create([
-            'Tarea'      => $request->Tarea,
-            'fecha'      => $request->fecha,
-            'estado'     => $request->estado,
-            'provincia'  => $request->provincia,
-            'pedido_id'  => $request->pedido_id,
-            'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id', // 
+        $tarea = TareaSellosModel::create([
+            'numero_tarea'        => $request->Tarea,
+            'fecha'               => $request->fecha,
+            'estado'              => $request->estado,
+            'provincia'           => $request->provincia,
+            'pedido_id'           => $request->pedido_id,
+            'tarea_id'            => $request->tarea_id,
+            'tareas_logistica_id' => $request->tareas_logistica_id,
         ]);
 
         if ($request->has('sellos')) {
@@ -47,69 +51,68 @@ public function store(Request $request)
     }
 }
 
-public function asignarSellos(Request $request, $id)
+public function asignarSellos(Request $request)
 {
     try {
-        $tarea = TareaModel::findOrFail($id);
-
         $request->validate([
-            'sellos'   => 'required|array|max:18',
-            'sellos.*' => 'exists:All_sellos,id',
+            'pedido_id'           => 'required|exists:pedidos,id',
+            'tareas_logistica_id' => 'required|exists:tareas_logistica,id',
+            'sellos'              => 'required|array|max:18',
+            'sellos.*'            => 'exists:All_sellos,id',
         ]);
 
         foreach ($request->sellos as $selloId) {
-            // Verifica si este sello ya está en otra tarea
-            $yaAsignado = \App\Models\Sellos\AllSellosModel::find($selloId)
-                ->tareas()
-                ->where('tareas.id', '!=', $id)
-                ->exists();
-
-            if ($yaAsignado) {
-                // Incrementa veces_generado
-                \App\Models\Sellos\AllSellosModel::find($selloId)->increment('veces_generado');
-            }
+            TareaSellosModel::create([
+                'pedido_id'           => $request->pedido_id,
+                'tareas_logistica_id' => $request->tareas_logistica_id,
+                'sello_id'            => $selloId,
+                'tipo_uso'            => 'asignado',
+                'fecha_uso'           => now(),
+            ]);
         }
 
-        $tarea->sellos()->attach($request->sellos);
+        return response()->json([
+            'message' => 'Sellos asignados correctamente',
+        ], 201);
 
-        return response()->json($tarea->load('sellos'), 200);
-
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'line'  => $e->getLine(),
+            'file'  => $e->getFile(),
+        ], 500);
     }
 }
+    public function eliminarSello(Request $request, $tareaId, $selloId)
+    {
+        $tarea = TareaSellosModel::findOrFail($tareaId);
+        $tarea->sellos()->detach($selloId);
+        return response()->json(['message' => 'Sello eliminado'], 200);
+    }
 
-public function eliminarSello(Request $request, $tareaId, $selloId)
-{
-    $tarea = TareaModel::findOrFail($tareaId);
-    $tarea->sellos()->detach($selloId);
-    return response()->json(['message' => 'Sello eliminado'], 200);
-}
-public function destroy($id)
-{
-    $tarea = TareaModel::findOrFail($id);
-    $tarea->sellos()->detach(); // elimina la pivote primero
-    $tarea->delete();
-    return response()->json(['message' => 'Tarea eliminada'], 200);
-}
+    public function destroy($id)
+    {
+        $tarea = TareaSellosModel::findOrFail($id);
+        $tarea->sellos()->detach();
+        $tarea->delete();
+        return response()->json(['message' => 'Tarea eliminada'], 200);
+    }
 
-public function update(Request $request, $id)
-{
-    $tarea = TareaModel::findOrFail($id);
+    public function update(Request $request, $id)
+    {
+        $tarea = TareaSellosModel::findOrFail($id);
 
-    $request->validate([
-        'Tarea'     => 'sometimes|integer|unique:tareas,Tarea,' . $id,
-        'fecha'     => 'sometimes|date',
-        'estado'    => 'sometimes|in:pendiente,en_proceso,completada',
-        'provincia' => 'sometimes|integer|in:4,11,14,18,21,23,29,41',
-    ]);
+        $request->validate([
+            'numero_tarea' => 'sometimes|integer',
+            'fecha'        => 'sometimes|date',
+            'estado'       => 'sometimes|in:pendiente,en_proceso,completada',
+            'provincia'    => 'sometimes|integer|in:4,11,14,18,21,23,29,41',
+        ]);
 
-    $tarea->update($request->only(['Tarea', 'fecha', 'estado', 'provincia']));
+        $tarea->update($request->only([
+            'numero_tarea', 'fecha', 'estado', 'provincia'
+        ]));
 
-    return response()->json($tarea->load('sellos'), 200);
-}
-
-
-
-
+        return response()->json($tarea->load('sellos'), 200);
+    }
 }

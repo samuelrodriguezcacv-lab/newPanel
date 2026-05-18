@@ -47,10 +47,10 @@ public static function generarCodigoSello(string $prefijo, string $numero): stri
 public function tareas()
 {
     return $this->belongsToMany(
-        TareaModel::class,
+        TareaSellosModel::class,
         'tarea_sello',
         'sello_id',
-        'tarea_id'
+        'id'
     );
 }
 }

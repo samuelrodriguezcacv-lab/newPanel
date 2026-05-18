@@ -6,7 +6,7 @@ use App\Http\Controllers\DashboardController; // <--- Importamos el controlador
 use App\Http\Controllers\OrdenProveedorController;
 use App\Http\Controllers\AllSellosController;
 use App\Http\Controllers\TareaLogisticaController;
-
+use App\Http\Controllers\TareaController;
 use Inertia\Inertia;
 
 /*
@@ -44,20 +44,21 @@ Route::post('/envio-proveedores/pedido/{id}/enviar', [OrdenProveedorController::
 // Ruta 2: La que ya tienes que guarda en BD y envía el correo definitivo
 Route::post('/envio-proveedores/pedidos', [OrdenProveedorController::class, 'store']);
     
- Route::prefix('sellos')->group(function () {
+//  Route::prefix('sellos')->group(function () {
 
-    // CRUD sellos
-    Route::get('/', [AllSellosController::class, 'index']);
-    Route::post('/', [AllSellosController::class, 'store']);
-    Route::put('/{id}', [AllSellosController::class, 'update']);
+//     // CRUD sellos
+//     Route::get('/', [AllSellosController::class, 'index']);
+//     Route::post('/', [AllSellosController::class, 'store']);
+//     Route::put('/{id}', [AllSellosController::class, 'update']);
 
-});
+// });
+
+
 
 Route::prefix('tareas-logistica')->group(function () {
 
     Route::get('/', [TareaLogisticaController::class, 'index']);
     Route::post('/', [TareaLogisticaController::class, 'store']);
-
     Route::put('/{id}', [TareaLogisticaController::class, 'update']);
     Route::delete('/{id}', [TareaLogisticaController::class, 'destroy']);
 
@@ -73,7 +74,7 @@ Route::prefix('tareas-logistica')->group(function () {
     | CARGA MODULAR DE RUTAS (Tus módulos limpios)
     |--------------------------------------------------------------------------
     */
-    // require __DIR__.'/sellos.php';
+    require __DIR__.'/sellos.php';
     require __DIR__.'/logistica.php';
     require __DIR__.'/proveedores.php';
     require __DIR__.'/pedidos.php';

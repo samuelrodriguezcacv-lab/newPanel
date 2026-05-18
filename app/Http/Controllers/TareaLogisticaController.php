@@ -31,25 +31,22 @@ public function store(Request $request)
         'tipo'         => 'required|in:sellos,metacrilato,anulacion,devolucion,carnets,otro',
         'descripcion'  => 'nullable|string|max:255',
         'tarea_sellos' => 'nullable|string',
+        'provincia'    => 'nullable|integer|in:4,11,14,18,21,23,29,41',
     ]);
 
     // En lugar de TareaLogistica::create(), usamos firstOrCreate para evitar duplicados
-    $tarea = TareaLogistica::firstOrCreate(
-        ['numero_tarea' => $request->numero_tarea], // Condición de búsqueda
-        [
-            'tipo'         => $request->tipo,
-            'descripcion'  => $request->descripcion,
-            'tarea_sellos' => $request->tarea_sellos,
-            'estado'       => 'pendiente' // Estado inicial por defecto
-        ]
-    );
-
-    if ($request->wantsJson() || $request->ajax()) {
-        return response()->json($tarea, 201);
-    }
-
-    return redirect()->route('tareas-logistica.index')
-        ->with('success', 'Tarea procesada correctamente');
+$tarea = TareaLogistica::updateOrCreate(
+    ['numero_tarea' => $request->numero_tarea],
+    [
+        'tipo'         => $request->tipo,
+        'descripcion'  => $request->descripcion,
+        'tarea_sellos' => $request->tarea_sellos,
+        'provincia'    => $request->provincia,
+        'estado'       => 'pendiente',
+    ]
+);
+   
+   return redirect()->route('tareas-logistica.index');
 }
     
 
@@ -101,24 +98,14 @@ public function update(Request $request, $id)
         'estado' => 'required|in:pendiente,en_proceso,completada',
     ]);
 
-    $tarea = TareaLogistica::findOrFail($id);
-    $tarea->update(['estado' => $request->estado]);
+    TareaLogistica::findOrFail($id)->update(['estado' => $request->estado]);
 
-    return response()->json([
-        'success' => true,
-        'tarea' => $tarea
-    ]);
+    return redirect()->route('tareas-logistica.index');
 }
 
-public function destroy(TareaLogistica $tareaLogistica)
+public function destroy(TareaLogistica $tareasLogistica)
 {
-    $tareaLogistica->delete();
-
-    if (request()->wantsJson() || request()->ajax()) {
-        return response()->json(['success' => true, 'message' => 'Tarea eliminada'], 200);
-    }
-
-    return redirect()->route('tareas-logistica.index')
-        ->with('success', 'Tarea eliminada correctamente');
+    $tareasLogistica->delete();
+    return redirect()->route('tareas-logistica.index');
 }
 }

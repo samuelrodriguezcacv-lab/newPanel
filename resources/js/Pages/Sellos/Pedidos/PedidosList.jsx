@@ -127,7 +127,7 @@ export default function PedidosList() {
                     ) : (
                         pedidosFiltrados.map((p) => {
                             const esAbierto = pedidoDetalle?.id === p.id;
-                            const totalSellos = p.tareas?.reduce((acc, t) => acc + (t.sellos?.length ?? 0), 0) ?? 0;
+                            const totalSellos = p.tareas?.filter((t) => t.sello).length ?? 0;
                             const esResaltado = String(p.numero_pedido) === String(resaltar);
 
                             return (
@@ -205,9 +205,14 @@ export default function PedidosList() {
                                                 <div key={t.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
                                                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="font-semibold text-gray-800 text-sm">Tarea: {t.Tarea}</span>
+                                                            <span className="font-semibold text-gray-800 text-sm">
+                                                                Tarea: {t.tarea_logistica?.numero_tarea ?? t.numero_tarea ?? t.tareas_logistica_id}
+                                                            </span>
                                                             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium">
-                                                                {PROVINCIAS[t.provincia] || "Sin provincia"}
+                                                               {PROVINCIAS[t.provincia ?? t.tarea_logistica?.provincia] 
+                                                                            ?? t.provincia 
+                                                                            ?? t.tarea_logistica?.provincia 
+                                                                            ?? "Sin provincia"}
                                                             </span>
                                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                                                                 t.estado === "pendiente" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
@@ -223,45 +228,60 @@ export default function PedidosList() {
                                                         </button>
                                                     </div>
 
-                                                    {t.sellos?.length > 0 ? (
-                                                        <div className="border border-gray-100 rounded-lg overflow-hidden">
-                                                            <table className="w-full text-left text-xs text-gray-600">
-                                                                <thead className="bg-gray-50 text-gray-500 font-semibold uppercase border-b border-gray-100">
-                                                                    <tr>
-                                                                        <th className="px-3 py-2">Código</th>
-                                                                        <th className="px-3 py-2">Colegiado</th>
-                                                                        <th className="px-3 py-2">Profesional</th>
-                                                                        <th className="px-3 py-2">Tipo</th>
-                                                                        <th className="px-3 py-2 text-right">Acción</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="divide-y divide-gray-100">
-                                                                    {t.sellos.map((s) => (
-                                                                        <tr key={s.id} className="hover:bg-gray-50/80 transition">
-                                                                            <td className="px-3 py-2.5 font-mono font-medium text-blue-700">{s.codigo_sello}</td>
-                                                                            <td className="px-3 py-2.5 text-gray-700">{s.numero_colegiado}</td>
-                                                                            <td className="px-3 py-2.5">{s.nombre} {s.apellido1} {s.apellido2}</td>
-                                                                            <td className="px-3 py-2.5">
-                                                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                                                                                    s.tipo_sello === "manual" ? "bg-gray-100 text-gray-700" : "bg-indigo-50 text-indigo-700 border border-indigo-100"
-                                                                                }`}>
-                                                                                    {s.tipo_sello}
-                                                                                </span>
-                                                                            </td>
-                                                                            <td className="px-3 py-2.5 text-right">
-                                                                                <button onClick={() => eliminarSello(t.id, s.id)}
-                                                                                    className="text-red-500 hover:text-red-700 font-medium hover:underline">
-                                                                                    Quitar
-                                                                                </button>
-                                                                            </td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-xs text-gray-400 italic">No hay sellos asociados a esta tarea.</p>
-                                                    )}
+                                                {t.sello ? (
+                                                    <div className="border border-gray-100 rounded-lg overflow-hidden">
+                                                        <table className="w-full text-left text-xs text-gray-600">
+                                                            <thead className="bg-gray-50 text-gray-500 font-semibold uppercase border-b border-gray-100">
+                                                                <tr>
+                                                                    <th className="px-3 py-2">Código</th>
+                                                                    <th className="px-3 py-2">Colegiado</th>
+                                                                    <th className="px-3 py-2">Profesional</th>
+                                                                    <th className="px-3 py-2">Tipo</th>
+                                                                    <th className="px-3 py-2 text-right">Acción</th>
+                                                                </tr>
+                                                            </thead>
+
+                                                            <tbody className="divide-y divide-gray-100">
+                                                                <tr key={t.sello.id} className="hover:bg-gray-50/80 transition">
+                                                                    <td className="px-3 py-2.5 font-mono font-medium text-blue-700">
+                                                                        {t.sello.codigo_sello}
+                                                                    </td>
+
+                                                                    <td className="px-3 py-2.5 text-gray-700">
+                                                                        {t.sello.numero_colegiado}
+                                                                    </td>
+
+                                                                    <td className="px-3 py-2.5">
+                                                                        {t.sello.nombre} {t.sello.apellido1} {t.sello.apellido2}
+                                                                    </td>
+
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                                                                            t.sello.tipo_sello === "manual"
+                                                                                ? "bg-gray-100 text-gray-700"
+                                                                                : "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                                                        }`}>
+                                                                            {t.sello.tipo_sello}
+                                                                        </span>
+                                                                    </td>
+
+                                                                    <td className="px-3 py-2.5 text-right">
+                                                                        <button
+                                                                            onClick={() => eliminarSello(t.id, t.sello.id)}
+                                                                            className="text-red-500 hover:text-red-700 font-medium hover:underline"
+                                                                        >
+                                                                            Quitar
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-400 italic">
+                                                        No hay sellos asociados a esta tarea.
+                                                    </p>
+                                                )}
                                                 </div>
                                             ))}
                                         </div>

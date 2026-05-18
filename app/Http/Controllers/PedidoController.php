@@ -10,7 +10,7 @@ class PedidoController extends Controller
 {
     public function index()
     {
-        $pedidos = PedidoModel::with('tareas.sellos')->get();
+        $pedidos = PedidoModel::with('tareas.sello','tareas.tareaLogistica')->get();
         return response()->json($pedidos, 200);
     }
 
@@ -43,7 +43,7 @@ public function actualizarEstado(Request $request, $id)
 
     public function show($id)
     {
-        $pedido = PedidoModel::with('tareas.sellos')->findOrFail($id);
+        $pedido = PedidoModel::with('tareas.sello', 'tareas.tareaLogistica')->findOrFail($id);
         return response()->json($pedido, 200);
     }
 

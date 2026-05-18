@@ -24,6 +24,6 @@ class PedidoModel extends Model
     // Relación con tareas
     public function tareas()
     {
-        return $this->hasMany(TareaModel::class, 'pedido_id');
+        return $this->hasMany(TareaSellosModel::class, 'pedido_id');
     }
 }

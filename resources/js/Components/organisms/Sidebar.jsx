@@ -2,7 +2,7 @@ import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
 import { usePage, Link } from '@inertiajs/react' // <-- Importamos Link desde Inertia
 import { Home, Stamp, Settings, ClipboardList, Box, SquareCheckBig, Truck, Layers, ListTodo, LogOut } from "lucide-react" // <-- Importamos el icono LogOut
-import logo from "../../../..//public/build/assets/raia.png";
+import logo from "../../../..//public/build/assets/image.png";
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
   const { url } = usePage()
