@@ -22,7 +22,7 @@ export default function Sidebar() {
     ">
       {/* SECCIÓN SUPERIOR: MENÚS */}
       <div>
-          <img src={logo} alt="Logo" className="w-100 h-12 mb-4" />
+          <img src={logo} alt="Logo" className="w-100 h-12 mb-4 center" />
 
         <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2 tracking-wider">
           Herramientas
