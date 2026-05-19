@@ -10,7 +10,9 @@ class MetacrilatoController extends Controller
 {
     public function index()
     {
-        $metacrilatos = Metacrilato::latest()->get();
+        $metacrilatos = Metacrilato::with('tareaLogistica')
+        ->latest()
+        ->get();
 
         return Inertia::render('Metacrilatos/Index', [
             'metacrilatos' => $metacrilatos,
@@ -18,23 +20,29 @@ class MetacrilatoController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'tipo_centro'        => 'required|in:Consultorio Veterinario,Clínica Veterinaria,Hospital Veterinario,Centro Veterinario',
-            'codigo_registro'    => 'required|string|max:20',
-            'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id',
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'tipo_centro'        => 'required|in:Consultorio Veterinario,Clínica Veterinaria,Hospital Veterinario,Centro Veterinario',
+        'codigo_registro'    => 'required|string|max:20',
+        'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id',
+    ]);
 
-        Metacrilato::create($request->all());
+    $metacrilato = new Metacrilato();
+    $metacrilato->tipo_centro = $request->tipo_centro;
+    $metacrilato->codigo_registro = $request->codigo_registro;
+    $metacrilato->tarea_logistica_id = $request->tarea_logistica_id;
+    $metacrilato->save();
 
-        if ($request->tarea_logistica_id) {
-            \App\Models\TareaLogistica::findOrFail($request->tarea_logistica_id)
-                ->update(['estado' => 'completada']);
-        }
-
-        return redirect()->route('metacrilatos.index');
+    if ($request->tarea_logistica_id) {
+        \App\Models\TareaLogistica::findOrFail($request->tarea_logistica_id)
+            ->update(['estado' => 'completada']);
     }
+
+    return redirect()->route('metacrilatos.index', [
+        'tarea_logistica_id' => $request->tarea_logistica_id,
+    ]);
+}
 
     public function destroy($id)
     {
@@ -61,11 +69,11 @@ class MetacrilatoController extends Controller
             unlink($output);
         }
 
-$fdf = $this->generarFdf([
-    'Tipología' => strtoupper($request->query('tipo_centro', '')),
-    'Texto2'    => strtoupper($request->query('codigo_registro', '')),
-]);
-        file_put_contents($fdfPath, $fdf);
+            $fdf = $this->generarFdf([
+                'tipo_veterinario' => mb_strtoupper($metacrilato->tipo_centro, 'UTF-8'),
+                'Texto2'           => mb_strtoupper($metacrilato->codigo_registro, 'UTF-8'),
+            ]);
+                    file_put_contents($fdfPath, $fdf);
 
         $pdftk = 'C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe';
 
@@ -107,8 +115,8 @@ $fdf = $this->generarFdf([
         }
 
             $fdf = $this->generarFdf([
-                'Tipología' => strtoupper($request->query('tipo_centro', '')),
-                'Texto2'    => strtoupper($request->query('codigo_registro', '')),
+                'tipo_veterinario' =>mb_strtoupper($request->query('tipo_centro', '')),
+                'Texto2'    => mb_strtoupper($request->query('codigo_registro', '')),
             ]);
 
         file_put_contents($fdfPath, $fdf);
@@ -138,32 +146,32 @@ $fdf = $this->generarFdf([
         ]);
     }
 
-    private function generarFdf(array $campos): string
-    {
-        $fdf = "%FDF-1.2\n";
-        $fdf .= "1 0 obj\n";
-        $fdf .= "<<\n";
-        $fdf .= "/FDF << /Fields [\n";
+private function generarFdf(array $campos): string
+{
+    $fdf = "%FDF-1.2\n";
+    $fdf .= "1 0 obj\n";
+    $fdf .= "<<\n";
+    $fdf .= "/FDF << /Fields [\n";
 
-        foreach ($campos as $nombre => $valor) {
-            $valor = $valor ?? '';
+    foreach ($campos as $nombre => $valor) {
+        $nombre = str_replace(['\\', '(', ')'], ['\\\\', '\(', '\)'], $nombre);
 
-            $valor = str_replace(
-                ['\\', '(', ')'],
-                ['\\\\', '\(', '\)'],
-                $valor
-            );
+        $valor = $valor ?? '';
 
-            $fdf .= "<< /T ($nombre) /V ($valor) >>\n";
-        }
+        // Convertir valor a UTF-16BE con BOM para soportar acentos y Ñ
+        $valorUtf16 = mb_convert_encoding($valor, 'UTF-16BE', 'UTF-8');
+        $valorHex = mb_strtoupper(bin2hex("\xFE\xFF" . $valorUtf16));
 
-        $fdf .= "] >>\n";
-        $fdf .= ">>\n";
-        $fdf .= "endobj\n";
-        $fdf .= "trailer\n";
-        $fdf .= "<< /Root 1 0 R >>\n";
-        $fdf .= "%%EOF\n";
-
-        return $fdf;
+        $fdf .= "<< /T ($nombre) /V <$valorHex> >>\n";
     }
+
+    $fdf .= "] >>\n";
+    $fdf .= ">>\n";
+    $fdf .= "endobj\n";
+    $fdf .= "trailer\n";
+    $fdf .= "<< /Root 1 0 R >>\n";
+    $fdf .= "%%EOF\n";
+
+    return $fdf;
+}
 }

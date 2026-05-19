@@ -6,6 +6,7 @@ import {
     asignarSellosATareaApi,
     getPedidoApi,
 } from "../Services/pedidoService";
+import axios from "axios";
 
 export function usePedidoFlow() {
 
@@ -205,21 +206,29 @@ useEffect(() => {
         }
     };
 
-    const confirmarSellos = async () => {
-        if (!tareaCreada || sellosAcumulados.length === 0) return;
-        try {
-                    await asignarSellosATareaApi({
-                pedido_id: pedido.id,
-                tareas_logistica_id: tareaCreada.id,
-                sellos: sellosAcumulados.map(s => s.id),
+const confirmarSellos = async () => {
+    if (!tareaCreada || sellosAcumulados.length === 0) return;
+    try {
+        await asignarSellosATareaApi({
+            pedido_id: pedido.id,
+            tareas_logistica_id: tareaCreada.id,
+            sellos: sellosAcumulados.map(s => s.id),
+        });
+
+        // Marcar tarea logística como completada
+        if (tareaLogisticaId) {
+            await axios.put(`/tareas-logistica/${tareaLogisticaId}`, {
+                estado: 'completada'
             });
-            setSellosAcumulados([]);
-            localStorage.removeItem('sellos_acumulados');
-            alert('✅ Sellos asignados correctamente');
-            } catch (err) {
-                console.error("Error asignando sellos:", err.response?.data || err);
-            }
-    };
+        }
+
+        setSellosAcumulados([]);
+        localStorage.removeItem('sellos_acumulados');
+        alert('✅ Sellos asignados correctamente');
+    } catch (err) {
+        console.error("Error asignando sellos:", err.response?.data || err);
+    }
+};
 
     const nuevaTarea = () => {
         setTareaCreada(null);

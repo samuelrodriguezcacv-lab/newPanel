@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\tareaLogistica;
 
 class Metacrilato extends Model
 {
@@ -19,4 +20,9 @@ class Metacrilato extends Model
         'Hospital Veterinario',
         'Centro Veterinario',
     ];
+
+            public function tareaLogistica()
+        {
+            return $this->belongsTo(\App\Models\TareaLogistica::class, 'tarea_logistica_id');
+        }
 }

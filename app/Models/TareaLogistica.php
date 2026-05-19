@@ -9,6 +9,7 @@ use App\Models\Tarea as TareaModel;
 class TareaLogistica extends Model
 {
     protected $table = 'tareas_logistica';
+    
 
     protected $fillable = [
         'numero_tarea',
@@ -52,6 +53,8 @@ class TareaLogistica extends Model
     {
         return $this->belongsTo(Pedido::class);
     }
+
+
 
     
 }

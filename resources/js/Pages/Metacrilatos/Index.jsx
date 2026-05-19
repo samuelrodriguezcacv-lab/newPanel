@@ -4,10 +4,11 @@ import Layout from '../../Template/LayaoutNav';
 
 export default function Index() {
     const { metacrilatos = [], tiposCentro = [] } = usePage().props;
-    const { url } = usePage();
-const params = new URLSearchParams(url.split('?')[1]);
+const params = new URLSearchParams(window.location.search);
 const tareaLogisticaId = params.get('tarea_logistica_id');
-console.log(tiposCentro);
+
+
+console.log('tareaLogisticaId URL:', tareaLogisticaId);
     const [form, setForm] = useState({
         tipo_centro: '',
         codigo_registro: '',
@@ -19,27 +20,45 @@ console.log(tiposCentro);
 
 
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setGuardando(true);
-        router.post('/metacrilatos', form, {
-            onError: (err) => {
-                setErrors(err);
-                setGuardando(false);
-            },
-            onSuccess: () => {
-                setForm({ tipo_centro: '', codigo_registro: '' });
-                setErrors({});
-                setGuardando(false);
-            },
-        });
+const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const params = new URLSearchParams(window.location.search);
+    const tareaLogisticaId = params.get('tarea_logistica_id');
+
+    const data = {
+        ...form,
+        tarea_logistica_id: tareaLogisticaId,
     };
+
+    console.log('FORM ENVIADO:', data);
+
+    setGuardando(true);
+
+    router.post('/metacrilatos', data, {
+        onError: (err) => {
+            console.log('ERRORES:', err);
+            setErrors(err);
+            setGuardando(false);
+        },
+        onSuccess: () => {
+            setForm({
+                tipo_centro: '',
+                codigo_registro: '',
+                tarea_logistica_id: tareaLogisticaId,
+            });
+            setErrors({});
+            setGuardando(false);
+        },
+    });
+};
 
     const eliminar = (id) => {
         if (confirm('¿Eliminar este metacrilato?')) {
             router.delete(`/metacrilatos/${id}`);
         }
     };
+    console.log('METACRILATOS:', metacrilatos);
 
     return (
         <Layout>
@@ -57,6 +76,11 @@ console.log(tiposCentro);
                     <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                         Nuevo metacrilato
                     </h2>
+                    {tareaLogisticaId && (
+                        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                            Metacrilato asociado a tarea ID: {tareaLogisticaId}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -98,16 +122,16 @@ console.log(tiposCentro);
                         </div>
 
 {/* PREVIEW */}
-{form.tipo_centro && form.codigo_registro && (
-    <div className="mb-4 space-y-2">
-        <p className="text-xs text-gray-400 uppercase tracking-wide">Vista previa</p>
-        <iframe
-            src={`/metacrilatos/preview?tipo_centro=${encodeURIComponent(form.tipo_centro)}&codigo_registro=${encodeURIComponent(form.codigo_registro)}`}
-            className="w-full h-96 rounded-xl border border-gray-200 shadow-sm"
-            title="Vista previa del metacrilato"
-        />
-    </div>
-)}
+                        {form.tipo_centro && form.codigo_registro && (
+                            <div className="mb-4 space-y-2">
+                                <p className="text-xs text-gray-400 uppercase tracking-wide">Vista previa</p>
+                                <iframe
+                                    src={`/metacrilatos/preview?tipo_centro=${encodeURIComponent(form.tipo_centro)}&codigo_registro=${encodeURIComponent(form.codigo_registro)}`}
+                                    className="w-full h-96 rounded-xl border border-gray-200 shadow-sm"
+                                    title="Vista previa del metacrilato"
+                                />
+                            </div>
+                        )}
 
                         <div className="flex justify-end">
                             <button
@@ -136,6 +160,7 @@ console.log(tiposCentro);
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                                     <tr>
+                                        <th className="px-4 py-3 text-left">Tarea</th>
                                         <th className="px-4 py-3 text-left">Tipo de centro</th>
                                         <th className="px-4 py-3 text-left">Nº Registro</th>
                                         <th className="px-4 py-3 text-left">Fecha</th>
@@ -143,40 +168,46 @@ console.log(tiposCentro);
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {metacrilatos.map(m => (
-                                        <tr key={m.id} className="hover:bg-gray-50 transition">
-                                            <td className="px-4 py-3 font-medium text-gray-800">
-                                                {m.tipo_centro}
-                                            </td>
-                                            <td className="px-4 py-3 font-mono font-bold text-green-700">
-                                                {m.codigo_registro}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-400 text-xs">
-                                                {new Date(m.created_at).toLocaleDateString('es-ES')}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <button
-                                                    onClick={() => eliminar(m.id)}
-                                                    className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-3 py-1">
-                                                    🗑️ Eliminar
-                                                </button>
-                                            </td>
-                                                                                <td className="px-4 py-3">
-                                        <div className="flex gap-2">
-                                            <a href={`/metacrilatos/${m.id}/pdf`}
-                                            target="_blank"
-                                            className="text-xs text-green-600 hover:text-green-800 border border-green-200 rounded-lg px-3 py-1">
-                                                📄 PDF
-                                            </a>
-                                            <button
-                                                onClick={() => eliminar(m.id)}
-                                                className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-3 py-1">
-                                                🗑️ Eliminar
-                                            </button>
-                                        </div>
-                                    </td>
-                                        </tr>
-                                    ))}
+{metacrilatos.map(m => (
+    <tr key={m.id} className="hover:bg-gray-50 transition">
+        <td className="px-4 py-3 font-medium text-gray-800">
+           <span className='font-mono font-black text-sm px-2.5 py-1 rounded-lg shadow-sm bg-emerald-600 text-white'>{m.tarea_logistica?.numero_tarea ?? 'Sin tarea'}</span> 
+        </td>
+        <td className="px-4 py-3 font-medium text-gray-800">
+</td>
+
+        <td className="px-4 py-3 font-medium text-gray-800">
+            {m.tipo_centro}
+        </td>
+
+        <td className="px-4 py-3 font-mono font-bold text-green-700">
+            {m.codigo_registro}
+        </td>
+
+        <td className="px-4 py-3 text-gray-400 text-xs">
+            {new Date(m.created_at).toLocaleDateString('es-ES')}
+        </td>
+
+        <td className="px-4 py-3">
+            <div className="flex gap-2">
+                <a
+                    href={`/metacrilatos/${m.id}/pdf`}
+                    target="_blank"
+                    className="text-xs text-green-600 hover:text-green-800 border border-green-200 rounded-lg px-3 py-1"
+                >
+                    📄 PDF
+                </a>
+
+                <button
+                    onClick={() => eliminar(m.id)}
+                    className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-3 py-1"
+                >
+                    🗑️ Eliminar
+                </button>
+            </div>
+        </td>
+    </tr>
+))}
                                 </tbody>
                             </table>
                         </div>

@@ -100,6 +100,10 @@ public function update(Request $request, $id)
 
     TareaLogistica::findOrFail($id)->update(['estado' => $request->estado]);
 
+    if ($request->expectsJson()) {
+        return response()->json(['ok' => true]);
+    }
+
     return redirect()->route('tareas-logistica.index');
 }
 

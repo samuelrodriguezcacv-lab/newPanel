@@ -16,5 +16,6 @@ Route::prefix('tareas-logistica')->name('tareas-logistica.')->group(function () 
     
     // Cambiamos el parámetro a {tareaLogistica} para que coincida exactamente con el Controlador de Laravel
     Route::put('/{tareaLogistica}', [TareaLogisticaController::class, 'update'])->name('update');
+    Route::put('/tareas-logistica/{id}', [TareaLogisticaController::class, 'update']);
     Route::delete('/{tareaLogistica}', [TareaLogisticaController::class, 'destroy'])->name('destroy');
 });
