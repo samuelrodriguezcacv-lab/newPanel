@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Sellos\AllSellosModel;
+use App\Models\Sellos\TareaSellosModel;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Sello;
-use App\Models\Tarea as TareaModel;
 
 class TareaLogistica extends Model
 {
     protected $table = 'tareas_logistica';
-    
 
     protected $fillable = [
         'numero_tarea',
@@ -18,43 +17,47 @@ class TareaLogistica extends Model
         'estado',
         'tarea_sellos',
         'provincia',
-        'pedido_id', // 🔴 ESTO ES CLAVE
+        'pedido_id',
     ];
 
-    // Tipos disponibles
     const TIPOS = [
-        'sellos'      => 'Sellos',
+        'sellos' => 'Sellos',
         'metacrilato' => 'Metacrilato',
-        'anulacion'   => 'Anulación',
-        'devolucion'  => 'Devolución',
-        'carnets'     => 'Carnets',
-        'otro'        => 'Otro',
+        'anulacion' => 'Anulacion',
+        'devolucion' => 'Devolucion',
+        'carnets' => 'Carnets',
+        'otro' => 'Otro',
     ];
 
-    // Estados disponibles
     const ESTADOS = [
-        'pendiente'   => 'Pendiente',
-        'en_proceso'  => 'En proceso',
-        'completada'  => 'Completada',
+        'pendiente' => 'Pendiente',
+        'en_proceso' => 'En proceso',
+        'completada' => 'Completada',
     ];
 
-    // Si es de tipo sellos, podemos acceder a sus sellos
     public function sellos()
     {
-        return $this->hasMany(Sello::class, 'tarea', 'tarea_sellos');
+        return $this->belongsToMany(
+            AllSellosModel::class,
+            'tarea_sello',
+            'tareas_logistica_id',
+            'sello_id'
+        )->withPivot(['id', 'pedido_id', 'tipo_uso', 'fecha_uso'])
+            ->withTimestamps();
     }
 
-    public function tareas()
-{
-    return $this->hasMany(TareaModel::class, 'tarea_logistica_id');
-}
+    public function selloAsignaciones()
+    {
+        return $this->hasMany(TareaSellosModel::class, 'tareas_logistica_id');
+    }
+
+    public function metacrilatos()
+    {
+        return $this->hasMany(Metacrilato::class, 'tarea_logistica_id');
+    }
 
     public function pedido()
     {
         return $this->belongsTo(Pedido::class);
     }
-
-
-
-    
 }

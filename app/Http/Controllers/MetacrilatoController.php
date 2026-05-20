@@ -3,46 +3,106 @@
 namespace App\Http\Controllers;
 
 use App\Models\Metacrilato;
+use App\Models\PedidoMetacrilato;
+use App\Models\TareaLogistica;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class MetacrilatoController extends Controller
 {
     public function index()
     {
-        $metacrilatos = Metacrilato::with('tareaLogistica')
-        ->latest()
-        ->get();
+        $metacrilatos = Metacrilato::with(['tareaLogistica', 'pedidoMetacrilato'])
+            ->latest()
+            ->get();
+
+        $pedidos = PedidoMetacrilato::withCount('metacrilatos')
+            ->orderByDesc('created_at')
+            ->get();
 
         return Inertia::render('Metacrilatos/Index', [
             'metacrilatos' => $metacrilatos,
-            'tiposCentro'  => Metacrilato::TIPOS_CENTRO,
+            'pedidos' => $pedidos,
+            'tiposCentro' => Metacrilato::TIPOS_CENTRO,
         ]);
     }
 
-public function store(Request $request)
-{
-    $request->validate([
-        'tipo_centro'        => 'required|in:Consultorio Veterinario,Clínica Veterinaria,Hospital Veterinario,Centro Veterinario',
-        'codigo_registro'    => 'required|string|max:20',
-        'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id',
-    ]);
+    public function pedidos()
+    {
+        $pedidos = PedidoMetacrilato::with(['metacrilatos.tareaLogistica'])
+            ->withCount('metacrilatos')
+            ->orderByDesc('created_at')
+            ->get();
 
-    $metacrilato = new Metacrilato();
-    $metacrilato->tipo_centro = $request->tipo_centro;
-    $metacrilato->codigo_registro = $request->codigo_registro;
-    $metacrilato->tarea_logistica_id = $request->tarea_logistica_id;
-    $metacrilato->save();
-
-    if ($request->tarea_logistica_id) {
-        \App\Models\TareaLogistica::findOrFail($request->tarea_logistica_id)
-            ->update(['estado' => 'completada']);
+        return Inertia::render('Metacrilatos/Pedidos', [
+            'pedidos' => $pedidos,
+        ]);
     }
 
-    return redirect()->route('metacrilatos.index', [
-        'tarea_logistica_id' => $request->tarea_logistica_id,
-    ]);
-}
+    public function tareas()
+    {
+        $tareas = TareaLogistica::with(['metacrilatos.pedidoMetacrilato'])
+            ->where('tipo', 'metacrilato')
+            ->orderByRaw("FIELD(estado, 'pendiente', 'en_proceso', 'completada')")
+            ->orderByDesc('created_at')
+            ->get();
+
+        return Inertia::render('Metacrilatos/Tareas', [
+            'tareas' => $tareas,
+        ]);
+    }
+
+    public function todos()
+    {
+        $metacrilatos = Metacrilato::with(['tareaLogistica', 'pedidoMetacrilato'])
+            ->latest()
+            ->get();
+
+        return Inertia::render('Metacrilatos/Todos', [
+            'metacrilatos' => $metacrilatos,
+            'tiposCentro' => Metacrilato::TIPOS_CENTRO,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'tipo_centro' => ['required', Rule::in(Metacrilato::TIPOS_CENTRO)],
+            'codigo_registro' => 'required|string|max:20',
+            'tarea_logistica_id' => 'nullable|exists:tareas_logistica,id',
+            'pedido_metacrilato_id' => 'nullable|exists:pedidos_metacrilatos,id',
+        ]);
+
+        $pedidoMetacrilatoId = $request->pedido_metacrilato_id;
+
+        if (!$pedidoMetacrilatoId) {
+            $pedido = PedidoMetacrilato::create([
+                'numero_pedido' => PedidoMetacrilato::generarNumeroPedido(),
+                'fecha' => now(),
+                'estado' => 'abierto',
+            ]);
+
+            $pedidoMetacrilatoId = $pedido->id;
+        }
+
+        Metacrilato::create([
+            'tipo_centro' => $request->tipo_centro,
+            'codigo_registro' => $request->codigo_registro,
+            'tarea_logistica_id' => $request->tarea_logistica_id,
+            'pedido_metacrilato_id' => $pedidoMetacrilatoId,
+        ]);
+
+        if ($request->tarea_logistica_id) {
+            TareaLogistica::findOrFail($request->tarea_logistica_id)
+                ->update(['estado' => 'completada']);
+        }
+
+        return redirect()->route('metacrilatos.index', [
+            'tarea_logistica_id' => $request->tarea_logistica_id,
+            'pedido_metacrilato_id' => $pedidoMetacrilatoId,
+        ]);
+    }
 
     public function destroy($id)
     {
@@ -56,41 +116,33 @@ public function store(Request $request)
         $metacrilato = Metacrilato::findOrFail($id);
 
         $plantilla = storage_path('app/Plantilla.pdf');
-        $tempDir   = storage_path('app/temp');
+        $tempDir = storage_path('app/temp');
 
         if (!file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
         $fdfPath = $tempDir . '/metacrilato-' . $metacrilato->id . '.fdf';
-        $output  = $tempDir . '/metacrilato-' . $metacrilato->id . '.pdf';
+        $output = $tempDir . '/metacrilato-' . $metacrilato->id . '.pdf';
 
         if (file_exists($output)) {
             unlink($output);
         }
 
-            $fdf = $this->generarFdf([
-                'tipo_veterinario' => mb_strtoupper($metacrilato->tipo_centro, 'UTF-8'),
-                'Texto2'           => mb_strtoupper($metacrilato->codigo_registro, 'UTF-8'),
-            ]);
-                    file_put_contents($fdfPath, $fdf);
+        $fdf = $this->generarFdf([
+            'tipo_veterinario' => mb_strtoupper($metacrilato->tipo_centro, 'UTF-8'),
+            'Texto2' => mb_strtoupper($metacrilato->codigo_registro, 'UTF-8'),
+        ]);
+
+        file_put_contents($fdfPath, $fdf);
 
         $pdftk = 'C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe';
-
         $cmd = '"' . $pdftk . '" "' . $plantilla . '" fill_form "' . $fdfPath . '" output "' . $output . '" flatten';
 
         exec($cmd . ' 2>&1', $salida, $codigo);
 
         if ($codigo !== 0 || !file_exists($output)) {
-            dd([
-                'error' => 'No se pudo generar el PDF',
-                'cmd' => $cmd,
-                'codigo' => $codigo,
-                'salida' => $salida,
-                'plantilla_existe' => file_exists($plantilla),
-                'fdf_existe' => file_exists($fdfPath),
-                'fdf' => $fdf,
-            ]);
+            abort(500, 'No se pudo generar el PDF del metacrilato.');
         }
 
         return response()
@@ -101,77 +153,63 @@ public function store(Request $request)
     public function previewFormulario(Request $request)
     {
         $plantilla = storage_path('app/Plantilla.pdf');
-        $tempDir   = storage_path('app/temp');
+        $tempDir = storage_path('app/temp');
 
         if (!file_exists($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
         $fdfPath = $tempDir . '/preview-temp.fdf';
-        $output  = $tempDir . '/preview-temp.pdf';
+        $output = $tempDir . '/preview-temp.pdf';
 
         if (file_exists($output)) {
             unlink($output);
         }
 
-            $fdf = $this->generarFdf([
-                'tipo_veterinario' =>mb_strtoupper($request->query('tipo_centro', '')),
-                'Texto2'    => mb_strtoupper($request->query('codigo_registro', '')),
-            ]);
+        $fdf = $this->generarFdf([
+            'tipo_veterinario' => mb_strtoupper($request->query('tipo_centro', ''), 'UTF-8'),
+            'Texto2' => mb_strtoupper($request->query('codigo_registro', ''), 'UTF-8'),
+        ]);
 
         file_put_contents($fdfPath, $fdf);
 
         $pdftk = 'C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe';
-
         $cmd = '"' . $pdftk . '" "' . $plantilla . '" fill_form "' . $fdfPath . '" output "' . $output . '" flatten';
 
         exec($cmd . ' 2>&1', $salida, $codigo);
 
         if ($codigo !== 0 || !file_exists($output)) {
-            dd([
-                'error' => 'No se pudo generar la vista previa',
-                'cmd' => $cmd,
-                'codigo' => $codigo,
-                'salida' => $salida,
-                'plantilla_existe' => file_exists($plantilla),
-                'fdf_existe' => file_exists($fdfPath),
-                'fdf' => $fdf,
-                'request' => $request->all(),
-            ]);
+            abort(500, 'No se pudo generar la vista previa del metacrilato.');
         }
 
         return response()->file($output, [
-            'Content-Type'        => 'application/pdf',
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="preview.pdf"',
         ]);
     }
 
-private function generarFdf(array $campos): string
-{
-    $fdf = "%FDF-1.2\n";
-    $fdf .= "1 0 obj\n";
-    $fdf .= "<<\n";
-    $fdf .= "/FDF << /Fields [\n";
+    private function generarFdf(array $campos): string
+    {
+        $fdf = "%FDF-1.2\n";
+        $fdf .= "1 0 obj\n";
+        $fdf .= "<<\n";
+        $fdf .= "/FDF << /Fields [\n";
 
-    foreach ($campos as $nombre => $valor) {
-        $nombre = str_replace(['\\', '(', ')'], ['\\\\', '\(', '\)'], $nombre);
+        foreach ($campos as $nombre => $valor) {
+            $nombre = str_replace(['\\', '(', ')'], ['\\\\', '\(', '\)'], $nombre);
+            $valorUtf16 = mb_convert_encoding($valor ?? '', 'UTF-16BE', 'UTF-8');
+            $valorHex = mb_strtoupper(bin2hex("\xFE\xFF" . $valorUtf16));
 
-        $valor = $valor ?? '';
+            $fdf .= "<< /T ($nombre) /V <$valorHex> >>\n";
+        }
 
-        // Convertir valor a UTF-16BE con BOM para soportar acentos y Ñ
-        $valorUtf16 = mb_convert_encoding($valor, 'UTF-16BE', 'UTF-8');
-        $valorHex = mb_strtoupper(bin2hex("\xFE\xFF" . $valorUtf16));
+        $fdf .= "] >>\n";
+        $fdf .= ">>\n";
+        $fdf .= "endobj\n";
+        $fdf .= "trailer\n";
+        $fdf .= "<< /Root 1 0 R >>\n";
+        $fdf .= "%%EOF\n";
 
-        $fdf .= "<< /T ($nombre) /V <$valorHex> >>\n";
+        return $fdf;
     }
-
-    $fdf .= "] >>\n";
-    $fdf .= ">>\n";
-    $fdf .= "endobj\n";
-    $fdf .= "trailer\n";
-    $fdf .= "<< /Root 1 0 R >>\n";
-    $fdf .= "%%EOF\n";
-
-    return $fdf;
-}
 }

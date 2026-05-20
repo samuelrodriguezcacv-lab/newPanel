@@ -55,6 +55,8 @@ export const actualizarEstadoTareaLogisticaApi = (id, estado) =>
    SELLOS
 ========================= */
 export const crearSelloApi        = (data)     => axios.post("/sellos", data);
+
+
 export const actualizarSelloApi   = (id, data) => axios.put(`/sellos/${id}`, data);
 export const editarSelloApi       = (id, data) => axios.put(`/sellos/${id}`, data);
 export const getSellosApi         = ()         => axios.get("/api-sellos/todos");

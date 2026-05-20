@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\tareaLogistica;
 
 class Metacrilato extends Model
 {
@@ -12,6 +11,9 @@ class Metacrilato extends Model
     protected $fillable = [
         'tipo_centro',
         'codigo_registro',
+        'tarea_logistica_id',
+        'pedido_id',
+        'pedido_metacrilato_id',
     ];
 
     const TIPOS_CENTRO = [
@@ -21,8 +23,13 @@ class Metacrilato extends Model
         'Centro Veterinario',
     ];
 
-            public function tareaLogistica()
-        {
-            return $this->belongsTo(\App\Models\TareaLogistica::class, 'tarea_logistica_id');
-        }
+    public function tareaLogistica()
+    {
+        return $this->belongsTo(TareaLogistica::class, 'tarea_logistica_id');
+    }
+
+    public function pedidoMetacrilato()
+    {
+        return $this->belongsTo(PedidoMetacrilato::class, 'pedido_metacrilato_id');
+    }
 }

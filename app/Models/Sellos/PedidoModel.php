@@ -26,4 +26,5 @@ class PedidoModel extends Model
     {
         return $this->hasMany(TareaSellosModel::class, 'pedido_id');
     }
+
 }

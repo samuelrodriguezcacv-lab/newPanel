@@ -1,21 +1,15 @@
 <?php
-// routes/metacrilatos.php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MetacrilatoController;
-
-/*
-|--------------------------------------------------------------------------
-| RUTAS DEL MÓDULO: METACRILATOS
-|--------------------------------------------------------------------------
-*/
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('metacrilatos')->name('metacrilatos.')->group(function () {
     Route::get('/', [MetacrilatoController::class, 'index'])->name('index');
+    Route::get('/pedidos', [MetacrilatoController::class, 'pedidos'])->name('pedidos');
+    Route::get('/tareas', [MetacrilatoController::class, 'tareas'])->name('tareas');
+    Route::get('/gestion/todos', [MetacrilatoController::class, 'todos'])->name('gestion.todos');
+    Route::post('/', [MetacrilatoController::class, 'store'])->name('store');
+    Route::get('/preview', [MetacrilatoController::class, 'previewFormulario'])->name('preview');
+    Route::delete('/{id}', [MetacrilatoController::class, 'destroy'])->name('destroy');
+    Route::get('/{id}/pdf', [MetacrilatoController::class, 'generarPdf'])->name('pdf');
 });
-
-Route::get('/metacrilatos', [MetacrilatoController::class, 'index'])->name('metacrilatos.index');
-Route::post('/metacrilatos', [MetacrilatoController::class, 'store'])->name('metacrilatos.store');
-Route::get('/metacrilatos/preview', [MetacrilatoController::class, 'previewFormulario'])->name('metacrilatos.preview');
-Route::delete('/metacrilatos/{id}', [MetacrilatoController::class, 'destroy'])->name('metacrilatos.destroy');
-Route::get('/metacrilatos/{id}/pdf', [MetacrilatoController::class, 'generarPdf'])->name('metacrilatos.pdf');

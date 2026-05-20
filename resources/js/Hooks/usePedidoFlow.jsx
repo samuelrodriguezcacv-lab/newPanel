@@ -3,6 +3,7 @@ import {
     getPedidosApi,
     crearPedidoApi,
     crearSelloApi,
+    actualizarSelloApi,
     asignarSellosATareaApi,
     getPedidoApi,
 } from "../Services/pedidoService";
@@ -17,6 +18,7 @@ export function usePedidoFlow() {
     const [cargando, setCargando]             = useState(false);
     const [cargandoSello, setCargandoSello]   = useState(false);
     const [erroresSello, setErroresSello]     = useState({});
+    const [editandoIndex, setEditandoIndex] = useState(null);
 
     const [sello, setSello] = useState({
         prefijo_postal: "",
@@ -181,30 +183,94 @@ useEffect(() => {
     /* =========================
        SELLO
     ========================= */
-    const acumularSello = async () => {
-        if (!tareaCreada) return;
-        setCargandoSello(true);
-        setErroresSello({});
-        try {
-            const res = await crearSelloApi(sello);
-            const { sello: selloData } = res.data;
 
-            const nuevos = [...sellosAcumulados, selloData];
+
+ const eliminarSellosAcumulados = (index) =>{
+    const nuevos = sellosAcumulados.filter((_,i)=> i !==index);
+    setSellosAcumulados(nuevos);
+    localStorage.setItem('sellos_acumulados', JSON.stringify(nuevos));
+
+    if(editandoIndex ===index){
+        setEditandoIndex(null);
+        setSello({
+            prefijo_postal:"", numero_colegiado: "", nombre: "",
+            apellido1:"", apellido2:"", tipo_sello:"manual"
+        });
+    }
+
+ };
+
+const editarSelloAcumulado = (index) =>{
+    setEditandoIndex(index);
+    setSello(sellosAcumulados[index]);
+}
+
+
+const acumularSello = async () => {
+    if (!tareaCreada) return;
+    setCargandoSello(true);
+    setErroresSello({});
+    try {
+        let selloData;
+
+        if (editandoIndex !== null) {
+            // EDITAR — actualizar el sello existente en la BD
+            const selloExistente = sellosAcumulados[editandoIndex];
+            const res = await actualizarSelloApi(selloExistente.id, sello);
+            selloData = res.data.sello ?? res.data;
+
+            const nuevos = [...sellosAcumulados];
+            nuevos[editandoIndex] = selloData;
             setSellosAcumulados(nuevos);
             localStorage.setItem('sellos_acumulados', JSON.stringify(nuevos));
+            setEditandoIndex(null);
+        } else {
+           // CREAR — sello nuevo
+    const res = await crearSelloApi({
+        ...sello,
+        numero_colegiado: String(sello.numero_colegiado),
+        prefijo_postal:   String(sello.prefijo_postal),
+    });
 
-            setSello({
-                prefijo_postal: "", numero_colegiado: "", nombre: "",
-                apellido1: "", apellido2: "", tipo_sello: "manual"
-            });
-        } catch (err) {
-            if (err.response?.status === 422) {
-                setErroresSello(err.response.data.errors);
-            }
-        } finally {
-            setCargandoSello(false);
+    console.log('res.data completo:', res.data);        // ← AÑADE ESTO
+    console.log('repetido:', res.data.repetido);        // ← AÑADE ESTO
+    console.log('sello:', res.data.sello);              // ← AÑADE ESTO
+
+    selloData = res.data.sello ?? res.data;
+
+    // Aviso si es repetido
+    if (res.data.repetido) {
+        const pedidosTexto = res.data.pedidos?.length > 0
+            ? `\nApareció en los pedidos: ${res.data.pedidos.join(', ')}`
+            : '';
+        alert(`⚠️ ${res.data.mensaje}${pedidosTexto}\n\nSe añadirá igualmente a la lista.`);
+    }
+
+    const nuevos = [...sellosAcumulados, selloData];
+    setSellosAcumulados(nuevos);
+    localStorage.setItem('sellos_acumulados', JSON.stringify(nuevos));
         }
-    };
+
+        setSello({
+            prefijo_postal: "", numero_colegiado: "", nombre: "",
+            apellido1: "", apellido2: "", tipo_sello: "manual",
+        });
+
+    } catch (err) {
+        if (err.response?.status === 422) {
+            setErroresSello(err.response.data.errors);
+        }
+        console.error(err);
+    } finally {
+        setCargandoSello(false);
+    }
+    
+};
+
+
+
+
+
 
 const confirmarSellos = async () => {
     if (!tareaCreada || sellosAcumulados.length === 0) return;
@@ -242,8 +308,8 @@ const confirmarSellos = async () => {
         tareaCreada, setTareaCreada,
         sello, setSello,
         sellosAcumulados,
-        cargando, cargandoSello,
-        erroresSello,
+        cargando, cargandoSello,editarSelloAcumulado,eliminarSellosAcumulados,
+        erroresSello,editandoIndex,
         crearPedido, seleccionarPedido, cambiarPedido, cerrarPedido,
         acumularSello, confirmarSellos, nuevaTarea,
         tareaUrl, tareaLogisticaId,

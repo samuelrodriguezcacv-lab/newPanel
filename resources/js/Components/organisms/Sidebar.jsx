@@ -2,9 +2,10 @@ import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
 import { usePage, Link } from '@inertiajs/react' // <-- Importamos Link desde Inertia
 import { Home, Stamp, Settings, ClipboardList, Box, SquareCheckBig, Truck, Layers, ListTodo, LogOut } from "lucide-react" // <-- Importamos el icono LogOut
-import logo from "../../../..//public/build/assets/image.png";
+import logo from "../../images/raia.png";
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
+  const [openMetacrilatos, setOpenMetacrilatos] = useState(false)
   const { url } = usePage()
 
   return (
@@ -121,12 +122,69 @@ export default function Sidebar() {
             )}
           </div>
 
-          <NavItem
-            icon={Layers}
-            label="Metacrilatos"
-            href="/metacrilatos"
-            active={url === '/metacrilatos'}
-          />
+          <div>
+            <div
+              onClick={() => setOpenMetacrilatos(!openMetacrilatos)}
+              className="
+                flex items-center justify-between
+                px-4 py-3
+                rounded-xl
+                hover:bg-gray-100
+                cursor-pointer
+                transition
+              "
+            >
+              <div className="flex items-center gap-3">
+                <Layers size={18} className="text-gray-600" />
+                <span className="text-sm font-medium text-gray-800">
+                  Metacrilatos
+                </span>
+              </div>
+              <span className="text-gray-400 text-xs transition-transform duration-200">
+                {openMetacrilatos ? "▲" : "▼"}
+              </span>
+            </div>
+
+            {openMetacrilatos && (
+              <div className="ml-6 mt-1 space-y-2 border-l border-gray-200 pl-3">
+                <div className="text-[11px] font-bold text-gray-400 uppercase pt-2 tracking-wider">
+                  Pedidos
+                </div>
+                <NavItem
+                  icon={Box}
+                  label="Crear Metacrilatos"
+                  href="/metacrilatos"
+                  active={url === '/metacrilatos'}
+                />
+                <NavItem
+                  icon={ClipboardList}
+                  label="Lista de Pedidos"
+                  href="/metacrilatos/pedidos"
+                  active={url === '/metacrilatos/pedidos'}
+                />
+
+                <div className="text-[11px] font-bold text-gray-400 uppercase pt-2 tracking-wider">
+                  Tareas
+                </div>
+                <NavItem
+                  icon={SquareCheckBig}
+                  label="Lista de Tareas"
+                  href="/metacrilatos/tareas"
+                  active={url === '/metacrilatos/tareas'}
+                />
+
+                <div className="text-[11px] font-bold text-gray-400 uppercase pt-2 tracking-wider">
+                  Gestion
+                </div>
+                <NavItem
+                  icon={Layers}
+                  label="Todos"
+                  href="/metacrilatos/gestion/todos"
+                  active={url === '/metacrilatos/gestion/todos'}
+                />
+              </div>
+            )}
+          </div>
 
           <NavItem 
             icon={Truck}

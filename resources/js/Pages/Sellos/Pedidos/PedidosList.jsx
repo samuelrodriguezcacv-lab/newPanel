@@ -68,7 +68,7 @@ export default function PedidosList() {
     const pedidosFiltrados = pedidos.filter((p) => {
         const coincideFecha = filtroFecha ? p.fecha === filtroFecha : true;
         const coincideProvincia = filtroProvincia
-            ? p.tareas?.some((t) => t.provincia == filtroProvincia)
+            ? p.tareas?.some((t) => (t.provincia ?? t.tarea_logistica?.provincia) == filtroProvincia)
             : true;
         return coincideFecha && coincideProvincia;
     });
@@ -199,9 +199,19 @@ export default function PedidosList() {
                                     {/* DETALLE DESPLEGABLE */}
                                     {esAbierto && pedidoDetalle && (
                                         <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-6">
-                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desglose de tareas del pedido</h4>
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desglose del pedido</h4>
+                                                <div className="flex gap-2">
+                                                    <span className="text-xs bg-purple-50 text-purple-700 border border-purple-100 rounded-md px-2.5 py-1">
+                                                        {pedidoDetalle.tareas?.filter((t) => t.sello).length ?? 0} sellos
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                                            {pedidoDetalle.tareas?.map((t) => (
+                                            {pedidoDetalle.tareas?.length > 0 && (
+                                                <div className="space-y-4">
+                                                    <h5 className="text-xs font-semibold text-gray-500 uppercase">Sellos</h5>
+                                                    {pedidoDetalle.tareas.map((t) => (
                                                 <div key={t.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
                                                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
                                                         <div className="flex items-center gap-2">
@@ -283,7 +293,15 @@ export default function PedidosList() {
                                                     </p>
                                                 )}
                                                 </div>
-                                            ))}
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {!pedidoDetalle.tareas?.length && (
+                                                <p className="text-xs text-gray-400 italic">
+                                                    Este pedido no tiene sellos asociados.
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>

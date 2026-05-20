@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sellos\AllSellosModel;
+use App\Models\Sellos\TareaSellosModel;
 use Illuminate\Http\Request;
 
 class AllSellosController extends Controller
@@ -27,10 +28,12 @@ class AllSellosController extends Controller
         $selloExistente = AllSellosModel::where('codigo_sello', $codigo)->first();
 
         if ($selloExistente) {
-            $pedidosAnteriores = $selloExistente->tareas()
+                $selloExistente->increment('veces_generado');
+
+            $pedidosAnteriores = TareaSellosModel::where('sello_id', $selloExistente->id)
                 ->with('pedido')
                 ->get()
-                ->map(fn($t) => $t->pedido?->numero_pedido)
+                ->map(fn ($asignacion) => $asignacion->pedido?->numero_pedido)
                 ->filter()
                 ->unique()
                 ->values();
@@ -69,14 +72,19 @@ class AllSellosController extends Controller
     public function repetidos()
     {
         $sellos = AllSellosModel::where('veces_generado', '>', 0)
-            ->with(['tareas.pedido'])
+            ->with(['tareas'])
             ->orderBy('veces_generado', 'desc')
             ->get()
             ->map(function ($sello) {
-                $sello->historial = $sello->tareas->map(fn($t) => [
-                    'tarea'  => $t->Tarea,
-                    'pedido' => $t->pedido?->numero_pedido,
-                ])->filter(fn($t) => $t['pedido'])->values();
+                $asignaciones = TareaSellosModel::where('sello_id', $sello->id)
+                    ->with(['pedido', 'tareaLogistica'])
+                    ->get();
+
+                $sello->historial = $asignaciones->map(fn ($asignacion) => [
+                    'tarea' => $asignacion->tareaLogistica?->numero_tarea,
+                    'pedido' => $asignacion->pedido?->numero_pedido,
+                ])->filter(fn ($item) => $item['pedido'])->values();
+
                 return $sello;
             });
 

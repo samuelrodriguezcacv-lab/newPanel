@@ -18,8 +18,8 @@ export default function NuevoPedido() {
         tareaCreada, setTareaCreada,
         sello, setSello,
         sellosAcumulados,
-        cargando, cargandoSello,
-        erroresSello,
+        cargando, cargandoSello,editarSelloAcumulado,
+        eliminarSellosAcumulados,erroresSello,editandoIndex,
         crearPedido, seleccionarPedido, cambiarPedido, cerrarPedido,
         acumularSello, confirmarSellos, nuevaTarea,
         tareaUrl, tareaLogisticaId,
@@ -207,9 +207,29 @@ export default function NuevoPedido() {
                                                                 { value: "automatico", label: "Automático" },
                                                             ]}/>
 
-                                                        <Button variant="primary" onClick={acumularSello} disabled={cargandoSello}>
-                                                            {cargandoSello ? "Añadiendo..." : "Acumular Sello"}
-                                                        </Button>
+<Button variant="primary" onClick={acumularSello} disabled={cargandoSello}>
+    {cargandoSello 
+        ? "Guardando..." 
+        : editandoIndex !== null 
+            ? "✏️ Actualizar sello" 
+            : "Acumular Sello"}
+</Button>
+
+{/* Botón cancelar edición */}
+{editandoIndex !== null && (
+    <button
+        type="button"
+        onClick={() => {
+            setEditandoIndex(null);
+            setSello({
+                prefijo_postal: "", numero_colegiado: "", nombre: "",
+                apellido1: "", apellido2: "", tipo_sello: "manual"
+            });
+        }}
+        className="w-full mt-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm hover:bg-slate-200 transition-colors">
+        Cancelar edición
+    </button>
+)}
                                                     </div>
 
                                                     {/* DERECHA — Acumulados */}
@@ -222,22 +242,40 @@ export default function NuevoPedido() {
                                                             </div>
                                                         ) : (
                                                             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                                                                {safeSellos.map((s, i) => (
-                                                                    <div key={s.id ?? i}
-                                                                        className="flex justify-between items-center bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
-                                                                        <div>
-                                                                            <p className="font-semibold text-slate-700 text-sm">{s.nombre} {s.apellido1}</p>
-                                                                            <p className="text-xs text-slate-400 font-mono">{s.codigo_sello}</p>
-                                                                        </div>
-                                                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                                                                            s.tipo_sello === "manual"
-                                                                                ? "bg-blue-50 text-blue-600"
-                                                                                : "bg-purple-50 text-purple-600"
-                                                                        }`}>
-                                                                            {s.tipo_sello}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
+{safeSellos.map((s, i) => (
+    <div key={s.id ?? i}
+        className={`flex justify-between items-center border rounded-xl px-3 py-2.5 transition-all ${
+            editandoIndex === i
+                ? 'bg-blue-50 border-blue-300'
+                : 'bg-slate-50 border-slate-100'
+        }`}>
+        <div>
+            <p className="font-semibold text-slate-700 text-sm">
+                {s.nombre} {s.apellido1}
+            </p>
+            <p className="text-xs text-slate-400 font-mono">{s.codigo_sello}</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                s.tipo_sello === "manual"
+                    ? "bg-blue-50 text-blue-600"
+                    : "bg-purple-50 text-purple-600"
+            }`}>
+                {s.tipo_sello}
+            </span>
+            <button
+                onClick={() => editarSelloAcumulado(i)}
+                className="text-xs text-blue-400 hover:text-blue-600 border border-blue-200 rounded-lg px-2 py-1">
+                ✏️
+            </button>
+            <button
+                onClick={() => eliminarSellosAcumulados(i)}
+                className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded-lg px-2 py-1">
+                🗑️
+            </button>
+        </div>
+    </div>
+))}
                                                             </div>
                                                         )}
 
