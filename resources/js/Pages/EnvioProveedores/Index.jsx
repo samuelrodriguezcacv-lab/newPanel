@@ -4,8 +4,10 @@ import { usePage } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { Clock, CheckCircle, FileText, Plus, Trash2, ShoppingBag, Truck, MapPin } from 'lucide-react';
+import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
 
 export default function Index({ proveedores, colegios, pedidos = [] }) {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     // 1. ESTADO DEL FORMULARIO
     console.log("PROVEEDORES RECIBIDOS:", proveedores);
     console.log("COLEGIOS RECIBIDOS:", colegios);
@@ -45,8 +47,12 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
         setEnviando(true);
 
         axios.post(route('envio-proveedores.pedidos.store'), form)
-            .then(res => {
-                alert('¡Pedido guardado con éxito!');
+            .then(async res => {
+                await notify({
+                    title: 'Pedido guardado',
+                    message: 'El pedido se ha creado y se abrira el PDF.',
+                    tone: 'success',
+                });
                 
                 // Abre el PDF en una pestaña nueva automáticamente
                 window.open(route('envio-proveedores.pedidos.pdf', res.data.pedido_id), '_blank');
@@ -63,7 +69,11 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
             })
             .catch(err => {
                 console.error(err);
-                alert('Hubo un error al crear el pedido.');
+                notify({
+                    title: 'Error al crear pedido',
+                    message: err.response?.data?.mensaje ?? 'Hubo un error al crear el pedido.',
+                    tone: 'danger',
+                });
             })
             .finally(() => {
                 setEnviando(false);
@@ -71,16 +81,28 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
     };
 
     // Cambiar estado desde la tarjeta de seguimiento
-    const handleCambiarEstado = (id, nuevoEstado) => {
-        if (confirm(`¿Marcar este pedido como ${nuevoEstado}?`)) {
-            router.put(route('envio-proveedores.pedidos.estado', id), { estado: nuevoEstado }, {
-                preserveScroll: true
-            });
-        }
+    const handleCambiarEstado = async (id, nuevoEstado) => {
+        const ok = await confirm({
+            title: 'Cambiar estado',
+            message: `Marcar este pedido como ${nuevoEstado}?`,
+            tone: 'warning',
+            confirmText: 'Cambiar estado',
+        });
+        if (!ok) return;
+
+        router.put(route('envio-proveedores.pedidos.estado', id), { estado: nuevoEstado }, {
+            preserveScroll: true,
+            onSuccess: () => notify({
+                title: 'Estado actualizado',
+                message: 'El pedido se actualizo correctamente.',
+                tone: 'success',
+            }),
+        });
     };
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="bg-slate-50/50 min-h-screen py-8 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto space-y-8">
                     

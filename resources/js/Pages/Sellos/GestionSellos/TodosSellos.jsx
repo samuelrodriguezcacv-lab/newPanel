@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { getSellosApi, editarSelloApi, eliminarSelloApi } from "../../../Services/pedidoService";
 import Input from "../../../Components/atoms/input.jsx";
 import Button from "../../../Components/atoms/button.jsx";
+import { useFeedbackModal } from "../../../Hooks/useFeedbackModal.jsx";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -10,6 +11,7 @@ const PROVINCIAS = {
 };
 
 export default function TodosSellos() {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     const [sellos, setSellos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [busqueda, setBusqueda] = useState("");
@@ -44,13 +46,25 @@ export default function TodosSellos() {
     };
 
     const eliminarSello = async (id) => {
-        if (!confirm("¿Eliminar este sello de forma permanente?")) return;
+        const ok = await confirm({
+            title: 'Eliminar sello',
+            message: 'Se eliminara este sello de forma permanente. Revisa que no este asociado a un pedido que necesites conservar.',
+            tone: 'danger',
+            confirmText: 'Eliminar',
+        });
+        if (!ok) return;
+
         await eliminarSelloApi(id);
         const nuevosSellos = sellos.filter((s) => s.id !== id);
         setSellos(nuevosSellos);
         if (selloSeleccionado?.id === id) {
             setSelloSeleccionado(nuevosSellos[0] || null);
         }
+        await notify({
+            title: 'Sello eliminado',
+            message: 'El sello se elimino correctamente.',
+            tone: 'success',
+        });
     };
 
     const guardarEdicion = async () => {
@@ -75,6 +89,7 @@ export default function TodosSellos() {
 
     return (
         <Layout>
+            {feedbackModal}
             {/* CONTENEDOR PRINCIPAL DIVIDIDO EN DOS COLUMNAS */}
             <div className="flex h-[calc(100vh-4rem)] bg-[#f8fafc]">
                 

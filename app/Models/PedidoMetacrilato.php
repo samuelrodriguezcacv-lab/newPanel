@@ -21,6 +21,23 @@ class PedidoMetacrilato extends Model
         return $ultimo ? $ultimo + 1 : 1;
     }
 
+    public static function abiertoActual(): self
+    {
+        $pedido = self::where('estado', 'abierto')
+            ->orderByDesc('numero_pedido')
+            ->first();
+
+        if ($pedido) {
+            return $pedido;
+        }
+
+        return self::create([
+            'numero_pedido' => self::generarNumeroPedido(),
+            'fecha' => now(),
+            'estado' => 'abierto',
+        ]);
+    }
+
     public function metacrilatos()
     {
         return $this->hasMany(Metacrilato::class, 'pedido_metacrilato_id');

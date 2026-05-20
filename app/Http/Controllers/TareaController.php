@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sellos\TareaSellosModel;
+use App\Models\Sellos\PedidoModel;
 use App\Models\TareaLogistica;
 use Illuminate\Http\Request;
 
@@ -128,11 +129,14 @@ class TareaController extends Controller
 
     private function crearAsignaciones(int $tareaLogisticaId, array $sellos, ?int $pedidoId): void
     {
+        $pedidoId ??= PedidoModel::abiertoActual()->id;
+
         foreach ($sellos as $selloId) {
             TareaSellosModel::firstOrCreate(
                 [
                     'pedido_id' => $pedidoId,
                     'tareas_logistica_id' => $tareaLogisticaId,
+                    'tarea_id' => $tareaLogisticaId, 
                     'sello_id' => $selloId,
                 ],
                 [

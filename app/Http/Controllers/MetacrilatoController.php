@@ -24,6 +24,7 @@ class MetacrilatoController extends Controller
         return Inertia::render('Metacrilatos/Index', [
             'metacrilatos' => $metacrilatos,
             'pedidos' => $pedidos,
+            'pedidoAbierto' => PedidoMetacrilato::abiertoActual(),
             'tiposCentro' => Metacrilato::TIPOS_CENTRO,
         ]);
     }
@@ -74,17 +75,8 @@ class MetacrilatoController extends Controller
             'pedido_metacrilato_id' => 'nullable|exists:pedidos_metacrilatos,id',
         ]);
 
-        $pedidoMetacrilatoId = $request->pedido_metacrilato_id;
-
-        if (!$pedidoMetacrilatoId) {
-            $pedido = PedidoMetacrilato::create([
-                'numero_pedido' => PedidoMetacrilato::generarNumeroPedido(),
-                'fecha' => now(),
-                'estado' => 'abierto',
-            ]);
-
-            $pedidoMetacrilatoId = $pedido->id;
-        }
+        $pedidoMetacrilatoId = $request->pedido_metacrilato_id
+            ?: PedidoMetacrilato::abiertoActual()->id;
 
         Metacrilato::create([
             'tipo_centro' => $request->tipo_centro,
@@ -111,39 +103,38 @@ class MetacrilatoController extends Controller
         return redirect()->route('metacrilatos.index');
     }
 
+    public function actualizarEstadoPedido(Request $request, $id)
+    {
+        $request->validate([
+            'estado' => 'required|in:abierto,cerrado,enviado',
+        ]);
+
+        PedidoMetacrilato::findOrFail($id)->update([
+            'estado' => $request->estado,
+        ]);
+
+        return redirect()->route('metacrilatos.pedidos');
+    }
+
+    public function cerrarPedido($id)
+    {
+        PedidoMetacrilato::findOrFail($id)->update([
+            'estado' => 'cerrado',
+        ]);
+
+        return redirect()->route('metacrilatos.pedidos');
+    }
+
     public function generarPdf($id)
     {
         $metacrilato = Metacrilato::findOrFail($id);
 
-        $plantilla = storage_path('app/Plantilla.pdf');
-        $tempDir = storage_path('app/temp');
-
-        if (!file_exists($tempDir)) {
-            mkdir($tempDir, 0755, true);
-        }
-
-        $fdfPath = $tempDir . '/metacrilato-' . $metacrilato->id . '.fdf';
-        $output = $tempDir . '/metacrilato-' . $metacrilato->id . '.pdf';
-
-        if (file_exists($output)) {
-            unlink($output);
-        }
-
-        $fdf = $this->generarFdf([
+        $output = $this->rellenarPdfMetacrilato([
             'tipo_veterinario' => mb_strtoupper($metacrilato->tipo_centro, 'UTF-8'),
+            'tipo_centro' => mb_strtoupper($metacrilato->tipo_centro, 'UTF-8'),
             'Texto2' => mb_strtoupper($metacrilato->codigo_registro, 'UTF-8'),
+            'registro_num' => mb_strtoupper($metacrilato->codigo_registro, 'UTF-8'),
         ]);
-
-        file_put_contents($fdfPath, $fdf);
-
-        $pdftk = 'C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe';
-        $cmd = '"' . $pdftk . '" "' . $plantilla . '" fill_form "' . $fdfPath . '" output "' . $output . '" flatten';
-
-        exec($cmd . ' 2>&1', $salida, $codigo);
-
-        if ($codigo !== 0 || !file_exists($output)) {
-            abort(500, 'No se pudo generar el PDF del metacrilato.');
-        }
 
         return response()
             ->download($output, 'metacrilato-' . $metacrilato->codigo_registro . '.pdf')
@@ -152,40 +143,24 @@ class MetacrilatoController extends Controller
 
     public function previewFormulario(Request $request)
     {
-        $plantilla = storage_path('app/Plantilla.pdf');
-        $tempDir = storage_path('app/temp');
+        $request->validate([
+            'tipo_centro' => ['nullable', Rule::in(Metacrilato::TIPOS_CENTRO)],
+            'codigo_registro' => 'nullable|string|max:20',
+        ]);
 
-        if (!file_exists($tempDir)) {
-            mkdir($tempDir, 0755, true);
-        }
-
-        $fdfPath = $tempDir . '/preview-temp.fdf';
-        $output = $tempDir . '/preview-temp.pdf';
-
-        if (file_exists($output)) {
-            unlink($output);
-        }
-
-        $fdf = $this->generarFdf([
+        $output = $this->rellenarPdfMetacrilato([
             'tipo_veterinario' => mb_strtoupper($request->query('tipo_centro', ''), 'UTF-8'),
+            'tipo_centro' => mb_strtoupper($request->query('tipo_centro', ''), 'UTF-8'),
             'Texto2' => mb_strtoupper($request->query('codigo_registro', ''), 'UTF-8'),
+            'registro_num' => mb_strtoupper($request->query('codigo_registro', ''), 'UTF-8'),
         ]);
 
-        file_put_contents($fdfPath, $fdf);
-
-        $pdftk = 'C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe';
-        $cmd = '"' . $pdftk . '" "' . $plantilla . '" fill_form "' . $fdfPath . '" output "' . $output . '" flatten';
-
-        exec($cmd . ' 2>&1', $salida, $codigo);
-
-        if ($codigo !== 0 || !file_exists($output)) {
-            abort(500, 'No se pudo generar la vista previa del metacrilato.');
-        }
-
-        return response()->file($output, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="preview.pdf"',
-        ]);
+        return response()
+            ->file($output, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="preview.pdf"',
+            ])
+            ->deleteFileAfterSend(true);
     }
 
     private function generarFdf(array $campos): string
@@ -211,5 +186,63 @@ class MetacrilatoController extends Controller
         $fdf .= "%%EOF\n";
 
         return $fdf;
+    }
+
+    private function rellenarPdfMetacrilato(array $campos): string
+    {
+        $plantilla = $this->resolverPlantillaPdf();
+        $tempDir = storage_path('app/temp');
+
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $baseName = 'metacrilato-' . uniqid('', true);
+        $fdfPath = $tempDir . DIRECTORY_SEPARATOR . $baseName . '.fdf';
+        $output = $tempDir . DIRECTORY_SEPARATOR . $baseName . '.pdf';
+
+        file_put_contents($fdfPath, $this->generarFdf($campos));
+
+        $pdftk = config('services.pdftk.binary');
+
+        if (!file_exists($pdftk)) {
+            @unlink($fdfPath);
+            abort(500, 'No se encontro el ejecutable de PDFtk.');
+        }
+
+        $cmd = implode(' ', [
+            escapeshellarg($pdftk),
+            escapeshellarg($plantilla),
+            'fill_form',
+            escapeshellarg($fdfPath),
+            'output',
+            escapeshellarg($output),
+            'flatten',
+        ]);
+
+        exec($cmd . ' 2>&1', $salida, $codigo);
+        @unlink($fdfPath);
+
+        if ($codigo !== 0 || !file_exists($output)) {
+            abort(500, 'No se pudo generar el PDF del metacrilato.');
+        }
+
+        return $output;
+    }
+
+    private function resolverPlantillaPdf(): string
+    {
+        $candidatas = [
+            storage_path('app/Plantilla.pdf'),
+            public_path('templates/Plantilla.pdf'),
+        ];
+
+        foreach ($candidatas as $plantilla) {
+            if (file_exists($plantilla)) {
+                return $plantilla;
+            }
+        }
+
+        abort(500, 'No se encontro la plantilla PDF de metacrilatos.');
     }
 }

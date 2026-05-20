@@ -8,8 +8,10 @@ import {
     getPedidoApi,
 } from "../Services/pedidoService";
 import axios from "axios";
+import { useFeedbackModal } from "./useFeedbackModal.jsx";
 
 export function usePedidoFlow() {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
 
     const [pedidos, setPedidos]               = useState([]);
     const [pedido, setPedido]                 = useState(null);
@@ -170,11 +172,23 @@ useEffect(() => {
 
     const cerrarPedido = async () => {
         if (!pedido) return;
+        const ok = await confirm({
+            title: 'Cerrar pedido',
+            message: `Vas a cerrar el pedido #${pedido.numero_pedido}. Los proximos sellos entraran en un pedido nuevo.`,
+            tone: 'warning',
+            confirmText: 'Cerrar pedido',
+        });
+        if (!ok) return;
+
         try {
             await fetch(`/pedidos/${pedido.id}/cerrar`, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content } });
-            const cerrado = { ...pedido, estado: 'cerrado' };
-            setPedido(cerrado);
-            localStorage.setItem('pedido_activo', JSON.stringify(cerrado));
+            localStorage.removeItem('pedido_activo');
+
+            const nuevo = await crearPedidoApi();
+            const detalleNuevo = await getPedidoApi(nuevo.data.id);
+
+            setPedido(detalleNuevo.data);
+            localStorage.setItem('pedido_activo', JSON.stringify(detalleNuevo.data));
         } catch (err) {
             console.error(err);
         }
@@ -243,7 +257,11 @@ const acumularSello = async () => {
         const pedidosTexto = res.data.pedidos?.length > 0
             ? `\nApareció en los pedidos: ${res.data.pedidos.join(', ')}`
             : '';
-        alert(`⚠️ ${res.data.mensaje}${pedidosTexto}\n\nSe añadirá igualmente a la lista.`);
+        await notify({
+            title: 'Sello repetido',
+            message: `${res.data.mensaje}${pedidosTexto}\n\nSe anadira igualmente a la lista.`,
+            tone: 'warning',
+        });
     }
 
     const nuevos = [...sellosAcumulados, selloData];
@@ -290,7 +308,11 @@ const confirmarSellos = async () => {
 
         setSellosAcumulados([]);
         localStorage.removeItem('sellos_acumulados');
-        alert('✅ Sellos asignados correctamente');
+        await notify({
+            title: 'Sellos asignados',
+            message: 'Los sellos se han anadido al pedido activo correctamente.',
+            tone: 'success',
+        });
     } catch (err) {
         console.error("Error asignando sellos:", err.response?.data || err);
     }
@@ -313,5 +335,6 @@ const confirmarSellos = async () => {
         crearPedido, seleccionarPedido, cambiarPedido, cerrarPedido,
         acumularSello, confirmarSellos, nuevaTarea,
         tareaUrl, tareaLogisticaId,
+        feedbackModal,
     };
 }

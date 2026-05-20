@@ -12,6 +12,7 @@ class TareaSellosModel extends Model
         protected $fillable = [
             'pedido_id',
             'tareas_logistica_id',
+            'tarea_id',
             'sello_id',
             'numero_tarea',
             'provincia',

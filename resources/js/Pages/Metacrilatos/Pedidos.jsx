@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import Layout from '../../Template/LayaoutNav';
+import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
 
 const PROVINCIAS = {
     4: 'Almeria',
@@ -14,6 +15,7 @@ const PROVINCIAS = {
 };
 
 export default function Pedidos() {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     const { pedidos = [] } = usePage().props;
     const [pedidoAbierto, setPedidoAbierto] = useState(null);
     const [estado, setEstado] = useState('');
@@ -22,8 +24,28 @@ export default function Pedidos() {
         return pedidos.filter((pedido) => estado ? pedido.estado === estado : true);
     }, [pedidos, estado]);
 
+    const cerrarPedido = async (pedido) => {
+        const ok = await confirm({
+            title: 'Cerrar pedido',
+            message: `Cerrar el pedido #${pedido.numero_pedido}? Los proximos metacrilatos entraran en un pedido nuevo.`,
+            tone: 'warning',
+            confirmText: 'Cerrar pedido',
+        });
+        if (!ok) return;
+
+        router.post(`/metacrilatos/pedidos/${pedido.id}/cerrar`, {}, {
+            preserveScroll: true,
+            onSuccess: () => notify({
+                title: 'Pedido cerrado',
+                message: 'El pedido se cerro correctamente.',
+                tone: 'success',
+            }),
+        });
+    };
+
     return (
         <Layout>
+            {feedbackModal}
             <div className="p-6 max-w-6xl mx-auto space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
@@ -73,6 +95,14 @@ export default function Pedidos() {
                                         <span className="text-xs bg-gray-50 text-gray-700 border border-gray-200 rounded-md px-2.5 py-1">
                                             {pedido.estado}
                                         </span>
+                                        {pedido.estado === 'abierto' && (
+                                            <button
+                                                onClick={() => cerrarPedido(pedido)}
+                                                className="text-xs bg-amber-600 text-white rounded-lg px-3 py-1.5"
+                                            >
+                                                Cerrar pedido
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => setPedidoAbierto(abierto ? null : pedido.id)}
                                             className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5"

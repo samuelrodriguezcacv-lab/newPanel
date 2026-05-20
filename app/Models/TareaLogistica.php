@@ -18,6 +18,7 @@ class TareaLogistica extends Model
         'tarea_sellos',
         'provincia',
         'pedido_id',
+        'fecha',
     ];
 
     const TIPOS = [

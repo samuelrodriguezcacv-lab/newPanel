@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import Layout from '../../Template/LayaoutNav';
+import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
 
 export default function Todos() {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     const { metacrilatos = [], tiposCentro = [] } = usePage().props;
     const [busqueda, setBusqueda] = useState('');
     const [tipo, setTipo] = useState('');
@@ -23,14 +25,28 @@ export default function Todos() {
         });
     }, [metacrilatos, busqueda, tipo]);
 
-    const eliminar = (id) => {
-        if (confirm('Eliminar este metacrilato?')) {
-            router.delete(`/metacrilatos/${id}`, { preserveScroll: true });
-        }
+    const eliminar = async (id) => {
+        const ok = await confirm({
+            title: 'Eliminar metacrilato',
+            message: 'Esta accion elimina el registro seleccionado. El resto del pedido se conserva.',
+            tone: 'danger',
+            confirmText: 'Eliminar',
+        });
+        if (!ok) return;
+
+        router.delete(`/metacrilatos/${id}`, {
+            preserveScroll: true,
+            onSuccess: () => notify({
+                title: 'Metacrilato eliminado',
+                message: 'El registro se elimino correctamente.',
+                tone: 'success',
+            }),
+        });
     };
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="p-6 max-w-6xl mx-auto space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>

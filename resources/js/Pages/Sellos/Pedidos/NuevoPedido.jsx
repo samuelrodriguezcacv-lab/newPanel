@@ -23,12 +23,14 @@ export default function NuevoPedido() {
         crearPedido, seleccionarPedido, cambiarPedido, cerrarPedido,
         acumularSello, confirmarSellos, nuevaTarea,
         tareaUrl, tareaLogisticaId,
+        feedbackModal,
     } = usePedidoFlow();
 
     const safeSellos = Array.isArray(sellosAcumulados) ? sellosAcumulados : [];
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="max-w-5xl mx-auto p-6 space-y-4">
 
                 {/* HEADER */}

@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'pdftk' => [
+        'binary' => env('PDFTK_BINARY', 'C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe'),
+    ],
+
 ];

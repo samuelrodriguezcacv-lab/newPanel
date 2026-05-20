@@ -192,6 +192,37 @@ function pintarSelloPdf(doc, sello, y) {
   return y + 6;
 }
 
+function pintarListadoSellosPdf(doc, titulo, sellos, subtitulo = "") {
+  let y = 18;
+
+  doc.setFont("Calibri", "bold");
+  doc.setFontSize(13);
+  doc.text(titulo, 105, y, { align: "center" });
+  subrayarTexto(doc, titulo, 105, y, "center");
+  y += 10;
+
+  if (subtitulo) {
+    doc.setFont("Calibri", "normal");
+    doc.setFontSize(10);
+    doc.text(subtitulo, 12, y);
+    y += 10;
+  }
+
+  if (!sellos.length) {
+    doc.setFont("Calibri", "normal");
+    doc.setFontSize(10);
+    doc.text("No hay sellos para este listado.", 12, y);
+    return;
+  }
+
+  y = pintarCabeceraColumnasPdf(doc, y);
+
+  sellos.forEach((sello) => {
+    y = comprobarSaltoPagina(doc, y, 10);
+    y = pintarSelloPdf(doc, sello, y);
+  });
+}
+
 function pintarTipoProvinciaPdf(doc, titulo, sellos, y) {
   if (!sellos.length) {
     return y;
@@ -464,6 +495,100 @@ async function generarRecibisWord(pedido, resumen) {
   const blob = await Packer.toBlob(crearDocumentoWord(children));
 
   saveAs(blob, `pedido-${pedido.numero_pedido}-recibis-por-provincia.docx`);
+}
+
+export function extraerSellosDePedido(pedido) {
+  return extraerSellosPedido(pedido);
+}
+
+export function obtenerOpcionesHojasPedido(pedido) {
+  const grupos = agruparSellosPorProvinciaYTipo(pedido);
+
+  return Object.entries(grupos).flatMap(([provincia, tipos]) => (
+    ["manual", "automatico"]
+      .filter((tipo) => tipos[tipo]?.length > 0)
+      .map((tipo) => ({
+        value: `${provincia}:${tipo}`,
+        provincia,
+        tipo,
+        total: tipos[tipo].length,
+        label: `${nombreProvincia(provincia)} - ${tipo === "manual" ? "Manual" : "Automatico"} (${tipos[tipo].length})`,
+      }))
+  ));
+}
+
+export async function generarPdfEmpresaPedido(pedido) {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  await registrarCalibri(doc);
+
+  const sellos = extraerSellosPedido(pedido).sort((a, b) => {
+    const provinciaA = normalizarProvincia(a.prefijo_postal);
+    const provinciaB = normalizarProvincia(b.prefijo_postal);
+
+    return provinciaA.localeCompare(provinciaB)
+      || String(a.tipo_sello ?? "").localeCompare(String(b.tipo_sello ?? ""))
+      || String(a.tarea ?? "").localeCompare(String(b.tarea ?? ""));
+  });
+
+  pintarListadoSellosPdf(
+    doc,
+    "PEDIDO COMPLETO DE SELLOS",
+    sellos,
+    `Pedido ${pedido.numero_pedido} - documento para empresa`
+  );
+
+  doc.save(`pedido-${pedido.numero_pedido}-empresa-completo.pdf`);
+}
+
+export async function generarPdfHojaPedido(pedido, provincia, tipo) {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  await registrarCalibri(doc);
+
+  const tipoNormalizado = tipo === "automatico" ? "automatico" : "manual";
+  const sellos = extraerSellosPedido(pedido).filter((sello) => (
+    normalizarProvincia(sello.prefijo_postal) === normalizarProvincia(provincia)
+    && (sello.tipo_sello === "automatico" ? "automatico" : "manual") === tipoNormalizado
+  ));
+
+  pintarListadoSellosPdf(
+    doc,
+    `${nombreProvincia(provincia)} - SELLOS ${tipoNormalizado.toUpperCase()}`,
+    sellos,
+    `Pedido ${pedido.numero_pedido}`
+  );
+
+  doc.save(`pedido-${pedido.numero_pedido}-${nombreProvincia(provincia).toLowerCase()}-${tipoNormalizado}.pdf`);
+}
+
+export async function generarPdfRepetidosPedido(pedido) {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  await registrarCalibri(doc);
+
+  const sellos = extraerSellosPedido(pedido).filter((sello) => Number(sello.veces_generado ?? 0) > 0);
+
+  pintarListadoSellosPdf(
+    doc,
+    "SELLOS REPETIDOS",
+    sellos,
+    `Pedido ${pedido.numero_pedido}`
+  );
+
+  doc.save(`pedido-${pedido.numero_pedido}-sellos-repetidos.pdf`);
 }
 
 export async function generarPdfPedido(pedido) {

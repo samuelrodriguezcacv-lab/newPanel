@@ -1,16 +1,18 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 require __DIR__.'/auth.php';
 
-Route::get('/', fn () => Inertia::render('Home'));
+Route::get('/', fn () => redirect()->route('dashboard'))->middleware('auth');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/metricas', [PedidoController::class, 'metricas'])->name('dashboard.metricas');
+    Route::get('/dashboard/notificaciones', [DashboardController::class, 'notificaciones'])->name('dashboard.notificaciones');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

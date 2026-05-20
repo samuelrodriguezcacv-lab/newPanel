@@ -59,6 +59,7 @@ class TareaLogisticaController extends Controller
             TareaSellosModel::firstOrCreate(
                 [
                     'tareas_logistica_id' => $tareaLogistica->id,
+                    'tarea_id'=>$tareaLogistica->id,
                     'sello_id' => $selloId,
                     'pedido_id' => $request->pedido_id,
                 ],

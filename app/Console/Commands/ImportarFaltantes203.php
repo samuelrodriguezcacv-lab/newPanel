@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Sellos\AllSellosModel;
-use App\Models\Sellos\TareaModel;
+use App\Models\Tarea;
 use Illuminate\Support\Facades\DB;
 
 class ImportarFaltantes203 extends Command
@@ -15,9 +15,10 @@ class ImportarFaltantes203 extends Command
     public function handle()
     {
         // Crear tarea para el pedido 203
-        $tarea = TareaModel::firstOrCreate(
-            ['Tarea' => 9999, 'pedido_id' => 1],
+        $tarea = Tarea::firstOrCreate(
+            ['numero_tarea' => 9999, 'pedido_id' => 1],
             [
+                'tipo' => 'sellos',
                 'fecha'     => now(),
                 'estado'    => 'completada',
                 'provincia' => 41,

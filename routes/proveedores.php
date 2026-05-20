@@ -3,6 +3,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OrdenProveedorController;
+use App\Models\EnvioProveedores\ProveedorModel;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,3 +20,9 @@ Route::prefix('envio-proveedores')->name('envio-proveedores.')->group(function (
     Route::get('/pedido/{id}/enviar', [OrdenProveedorController::class, 'vistaEnvio'])->name('pedido.enviar');
     Route::post('/pedido/{id}/enviar', [OrdenProveedorController::class, 'enviarDesdePanel'])->name('pedido.enviar.store');
 });
+
+Route::get('/api/proveedores/{id}/productos', function ($id) {
+    return response()->json(
+        ProveedorModel::with('productos')->findOrFail($id)->productos
+    );
+})->name('api.proveedores.productos');

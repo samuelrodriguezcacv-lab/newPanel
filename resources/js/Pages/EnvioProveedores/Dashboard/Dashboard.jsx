@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import Layout from '../../../Template/LayaoutNav';
+import { useFeedbackModal } from '../../../Hooks/useFeedbackModal';
 import { 
     ChevronRight, 
     Plus, 
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'; // Sugerencia: Instala lucide-react para iconos consistentes
 
 export default function Dashboard() {
+    const { feedbackModal, notify } = useFeedbackModal();
     const { proveedores, colegios } = usePage().props;
 
     const [vista, setVista] = useState('catalogo');
@@ -82,7 +84,11 @@ const totales = useMemo(() => {
             });
             setPedidoCreado(res.data.pedido_id);
         } catch (e) {
-            alert('Error al guardar el pedido');
+            notify({
+                title: 'Error al guardar pedido',
+                message: e.response?.data?.mensaje ?? 'No se pudo guardar el pedido.',
+                tone: 'danger',
+            });
         } finally {
             setGuardando(false);
         }
@@ -90,6 +96,7 @@ const totales = useMemo(() => {
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="flex h-screen bg-slate-50 overflow-hidden">
                 
                 {/* SIDEBAR IZQUIERDO */}

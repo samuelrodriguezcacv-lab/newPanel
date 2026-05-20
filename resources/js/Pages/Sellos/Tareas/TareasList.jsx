@@ -4,6 +4,7 @@ import Button from "../../../Components/atoms/button.jsx";
 import { useState, useEffect } from "react";
 import { getTareasApi, updateTareaEstadoApi, eliminarTareaApi, editarTareaApi } from "../../../Services/pedidoService";
 import React from "react";
+import { useFeedbackModal } from "../../../Hooks/useFeedbackModal.jsx";
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
     21: "Huelva", 23: "Jaén", 29: "Málaga", 41: "Sevilla"
@@ -18,6 +19,7 @@ const estadoStyles = {
 };
 
 export default function TareasList() {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     const [tareas, setTareas] = useState([]);
     const [filtroEstado, setFiltroEstado] = useState("");
     const [filtroProvincia, setFiltroProvincia] = useState("");
@@ -59,9 +61,21 @@ useEffect(() => {
     };
 
     const eliminarTarea = async (id) => {
-        if (!confirm("¿Eliminar esta tarea y todos sus sellos?")) return;
+        const ok = await confirm({
+            title: 'Eliminar tarea de sellos',
+            message: 'Se eliminara esta tarea y todos sus sellos asignados.',
+            tone: 'danger',
+            confirmText: 'Eliminar',
+        });
+        if (!ok) return;
+
         await eliminarTareaApi(id);
         setTareas(tareas.filter((t) => t.id !== id));
+        await notify({
+            title: 'Tarea eliminada',
+            message: 'La tarea se elimino correctamente.',
+            tone: 'success',
+        });
     };
 
     const guardarEdicionTarea = async () => {
@@ -79,6 +93,7 @@ useEffect(() => {
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="p-6 space-y-6">
                 <h1 className="text-2xl font-bold text-gray-900">Lista de Tareas</h1>
 

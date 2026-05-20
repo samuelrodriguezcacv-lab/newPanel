@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Sellos\AllSellosModel;
 use App\Models\Sellos\TareaSellosModel;
 use Illuminate\Http\Request;
@@ -12,15 +11,15 @@ class AllSellosController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'prefijo_postal' => ['required', 'string', 'regex:/^\d{2}$/'],
-            'numero_colegiado' => 'required|string|max:4',
-            'nombre'           => 'required|string|max:255',
-            'apellido1'        => 'required|string|max:255',
-            'apellido2'        => 'nullable|string|max:255',
-            'tipo_sello'       => 'required|in:manual,automatico',
+            'prefijo_postal' => ['required', 'string', 'regex:/^\d{1,2}$/'],
+            'numero_colegiado' => ['required', 'string', 'regex:/^\d{1,4}$/'],
+            'nombre' => 'required|string|max:255',
+            'apellido1' => 'required|string|max:255',
+            'apellido2' => 'nullable|string|max:255',
+            'tipo_sello' => 'required|in:manual,automatico',
         ]);
 
-        $prefijo         = str_pad((int) $request->prefijo_postal, 2, '0', STR_PAD_LEFT);
+        $prefijo = str_pad((int) $request->prefijo_postal, 2, '0', STR_PAD_LEFT);
         $numeroColegiado = str_pad((int) $request->numero_colegiado, 4, '0', STR_PAD_LEFT);
 
         $codigo = AllSellosModel::generarCodigoSello($prefijo, $numeroColegiado);
@@ -28,7 +27,7 @@ class AllSellosController extends Controller
         $selloExistente = AllSellosModel::where('codigo_sello', $codigo)->first();
 
         if ($selloExistente) {
-                $selloExistente->increment('veces_generado');
+            $selloExistente->increment('veces_generado');
 
             $pedidosAnteriores = TareaSellosModel::where('sello_id', $selloExistente->id)
                 ->with('pedido')
@@ -39,26 +38,26 @@ class AllSellosController extends Controller
                 ->values();
 
             return response()->json([
-                'sello'    => $selloExistente,
+                'sello' => $selloExistente->refresh(),
                 'repetido' => true,
-                'mensaje'  => 'Este sello ya fue generado anteriormente.',
-                'pedidos'  => $pedidosAnteriores,
+                'mensaje' => 'Este sello ya fue generado anteriormente.',
+                'pedidos' => $pedidosAnteriores,
             ], 200);
         }
 
         $sello = AllSellosModel::create([
-            'codigo_sello'     => $codigo,
-            'prefijo_postal'   => $prefijo,           // ← normalizado
-            'numero_colegiado' => $numeroColegiado,   // ← normalizado
-            'nombre'           => $request->nombre,
-            'apellido1'        => $request->apellido1,
-            'apellido2'        => $request->apellido2,
-            'tipo_sello'       => $request->tipo_sello,
-            'veces_generado'   => 0,
+            'codigo_sello' => $codigo,
+            'prefijo_postal' => $prefijo,
+            'numero_colegiado' => $numeroColegiado,
+            'nombre' => $request->nombre,
+            'apellido1' => $request->apellido1,
+            'apellido2' => $request->apellido2,
+            'tipo_sello' => $request->tipo_sello,
+            'veces_generado' => 0,
         ]);
 
         return response()->json([
-            'sello'    => $sello,
+            'sello' => $sello,
             'repetido' => false,
         ], 201);
     }
@@ -66,6 +65,7 @@ class AllSellosController extends Controller
     public function index()
     {
         $sellos = AllSellosModel::orderBy('created_at', 'desc')->get();
+
         return response()->json($sellos, 200);
     }
 
@@ -96,22 +96,25 @@ class AllSellosController extends Controller
         $sellos = AllSellosModel::orderBy('prefijo_postal')
             ->get()
             ->groupBy('prefijo_postal');
+
         return response()->json($sellos, 200);
     }
 
     public function buscar(Request $request)
     {
-        // ← normalizado
-        $prefijo         = str_pad((int) $request->prefijo_postal, 2, '0', STR_PAD_LEFT);
+        $request->validate([
+            'prefijo_postal' => ['required', 'string', 'regex:/^\d{1,2}$/'],
+            'numero_colegiado' => ['required', 'string', 'regex:/^\d{1,4}$/'],
+        ]);
+
+        $prefijo = str_pad((int) $request->prefijo_postal, 2, '0', STR_PAD_LEFT);
         $numeroColegiado = str_pad((int) $request->numero_colegiado, 4, '0', STR_PAD_LEFT);
-
         $codigo = AllSellosModel::generarCodigoSello($prefijo, $numeroColegiado);
-
         $sello = AllSellosModel::where('codigo_sello', $codigo)->first();
 
         return response()->json([
             'existe' => (bool) $sello,
-            'sello'  => $sello,
+            'sello' => $sello,
             'codigo' => $codigo,
         ]);
     }
@@ -121,28 +124,36 @@ class AllSellosController extends Controller
         $sello = AllSellosModel::findOrFail($id);
 
         $request->validate([
-            'prefijo_postal'   => 'required|integer|between:1,99',
-            'numero_colegiado' => 'required|string|max:4',  // ← string
-            'nombre'           => 'required|string|max:255',
-            'apellido1'        => 'required|string|max:255',
-            'apellido2'        => 'nullable|string|max:255',
-            'tipo_sello'       => 'required|in:manual,automatico',
+            'prefijo_postal' => ['required', 'string', 'regex:/^\d{1,2}$/'],
+            'numero_colegiado' => ['required', 'string', 'regex:/^\d{1,4}$/'],
+            'nombre' => 'required|string|max:255',
+            'apellido1' => 'required|string|max:255',
+            'apellido2' => 'nullable|string|max:255',
+            'tipo_sello' => 'required|in:manual,automatico',
         ]);
 
-        // ← normalizado
-        $prefijo         = str_pad((int) $request->prefijo_postal, 2, '0', STR_PAD_LEFT);
+        $prefijo = str_pad((int) $request->prefijo_postal, 2, '0', STR_PAD_LEFT);
         $numeroColegiado = str_pad((int) $request->numero_colegiado, 4, '0', STR_PAD_LEFT);
-
         $codigo = AllSellosModel::generarCodigoSello($prefijo, $numeroColegiado);
 
+        $codigoDuplicado = AllSellosModel::where('codigo_sello', $codigo)
+            ->whereKeyNot($sello->id)
+            ->exists();
+
+        if ($codigoDuplicado) {
+            return response()->json([
+                'message' => 'Ya existe otro sello con ese prefijo y numero de colegiado.',
+            ], 422);
+        }
+
         $sello->update([
-            'codigo_sello'     => $codigo,
-            'prefijo_postal'   => $prefijo,
+            'codigo_sello' => $codigo,
+            'prefijo_postal' => $prefijo,
             'numero_colegiado' => $numeroColegiado,
-            'nombre'           => $request->nombre,
-            'apellido1'        => $request->apellido1,
-            'apellido2'        => $request->apellido2,
-            'tipo_sello'       => $request->tipo_sello,
+            'nombre' => $request->nombre,
+            'apellido1' => $request->apellido1,
+            'apellido2' => $request->apellido2,
+            'tipo_sello' => $request->tipo_sello,
         ]);
 
         return response()->json($sello, 200);

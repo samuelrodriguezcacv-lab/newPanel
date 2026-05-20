@@ -2,8 +2,15 @@
 import Layout from "../../../Template/LayaoutNav.jsx";
 import { useState, useEffect, useRef } from "react";
 import { getPedidosApi, getPedidoApi, actualizarEstadoPedidoApi, eliminarSelloApi, eliminarTareaApi } from "../../../Services/pedidoService";
-import { generarPdfPedido } from "../../../Utils/generarPdfPedido.js";
+import {
+    generarPdfEmpresaPedido,
+    generarPdfHojaPedido,
+    generarPdfRepetidosPedido,
+    obtenerOpcionesHojasPedido,
+} from "../../../Utils/generarPdfPedido.js";
 import { usePage } from "@inertiajs/react";
+import { useFeedbackModal } from "../../../Hooks/useFeedbackModal.jsx";
+import { Download, FileText, Printer } from "lucide-react";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -11,11 +18,13 @@ const PROVINCIAS = {
 };
 
 export default function PedidosList() {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     const [pedidos, setPedidos] = useState([]);
     const [filtroFecha, setFiltroFecha] = useState("");
     const [filtroProvincia, setFiltroProvincia] = useState("");
     const [pedidoDetalle, setPedidoDetalle] = useState(null);
     const [cargando, setCargando] = useState(true);
+    const [hojasSeleccionadas, setHojasSeleccionadas] = useState({});
 
     const { url } = usePage();
     const params = new URLSearchParams(url.split('?')[1]);
@@ -52,17 +61,68 @@ export default function PedidosList() {
     };
 
     const eliminarSello = async (tareaId, selloId) => {
-        if (!confirm("¿Eliminar este sello de la tarea?")) return;
+        const ok = await confirm({
+            title: 'Quitar sello',
+            message: 'Se quitara este sello de la tarea. El sello seguira existiendo en el catalogo.',
+            tone: 'warning',
+            confirmText: 'Quitar',
+        });
+        if (!ok) return;
+
         await eliminarSelloApi(tareaId, selloId);
         const res = await getPedidoApi(pedidoDetalle.id);
         setPedidoDetalle(res.data);
+        await notify({
+            title: 'Sello quitado',
+            message: 'El sello se quito de la tarea correctamente.',
+            tone: 'success',
+        });
     };
 
     const eliminarTarea = async (tareaId) => {
-        if (!confirm("¿Eliminar esta tarea y todos sus sellos?")) return;
+        const ok = await confirm({
+            title: 'Eliminar tarea',
+            message: 'Se eliminara esta tarea y todos sus sellos asignados.',
+            tone: 'danger',
+            confirmText: 'Eliminar',
+        });
+        if (!ok) return;
+
         await eliminarTareaApi(tareaId);
         const res = await getPedidoApi(pedidoDetalle.id);
         setPedidoDetalle(res.data);
+        await notify({
+            title: 'Tarea eliminada',
+            message: 'La tarea se elimino correctamente.',
+            tone: 'success',
+        });
+    };
+
+    const descargarPdfEmpresa = async (pedido) => {
+        const res = await getPedidoApi(pedido.id);
+        await generarPdfEmpresaPedido(res.data);
+    };
+
+    const descargarPdfHoja = async (pedido) => {
+        const seleccion = hojasSeleccionadas[pedido.id] ?? obtenerOpcionesHojasPedido(pedido)[0]?.value;
+
+        if (!seleccion) {
+            await notify({
+                title: 'Sin sellos',
+                message: 'Este pedido no tiene hojas por provincia para descargar.',
+                tone: 'warning',
+            });
+            return;
+        }
+
+        const [provincia, tipo] = seleccion.split(':');
+        const res = await getPedidoApi(pedido.id);
+        await generarPdfHojaPedido(res.data, provincia, tipo);
+    };
+
+    const descargarPdfRepetidos = async (pedido) => {
+        const res = await getPedidoApi(pedido.id);
+        await generarPdfRepetidosPedido(res.data);
     };
 
     const pedidosFiltrados = pedidos.filter((p) => {
@@ -75,6 +135,7 @@ export default function PedidosList() {
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="p-6 max-w-5xl mx-auto space-y-6">
 
                 {/* CABECERA */}
@@ -128,7 +189,10 @@ export default function PedidosList() {
                         pedidosFiltrados.map((p) => {
                             const esAbierto = pedidoDetalle?.id === p.id;
                             const totalSellos = p.tareas?.filter((t) => t.sello).length ?? 0;
+                            const totalRepetidos = p.tareas?.filter((t) => Number(t.sello?.veces_generado ?? 0) > 0).length ?? 0;
                             const esResaltado = String(p.numero_pedido) === String(resaltar);
+                            const opcionesHojas = obtenerOpcionesHojasPedido(p);
+                            const hojaSeleccionada = hojasSeleccionadas[p.id] ?? opcionesHojas[0]?.value ?? "";
 
                             return (
                                 <div
@@ -163,7 +227,7 @@ export default function PedidosList() {
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center gap-3 ml-auto sm:ml-0">
+                                        <div className="flex flex-wrap items-center justify-end gap-2 ml-auto sm:ml-0">
                                             <select value={p.estado ?? 'abierto'}
                                                 onChange={(e) => cambiarEstadoPedido(p, e.target.value)}
                                                 className={`text-xs px-3 py-1.5 rounded-lg font-semibold border shadow-sm cursor-pointer transition outline-none ${
@@ -177,12 +241,52 @@ export default function PedidosList() {
                                             </select>
 
                                             <button
-                                                onClick={async () => {
-                                                    const res = await getPedidoApi(p.id);
-                                                    generarPdfPedido(res.data);
-                                                }}
-                                                className="text-xs font-medium text-gray-700 hover:text-gray-900 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm hover:bg-gray-50 transition">
-                                                PDF
+                                                type="button"
+                                                onClick={() => descargarPdfEmpresa(p)}
+                                                title="Descargar PDF completo para la empresa"
+                                                className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm hover:bg-gray-50 transition">
+                                                <FileText className="h-3.5 w-3.5" />
+                                                PDF empresa
+                                            </button>
+
+                                            <div className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white p-1 shadow-sm">
+                                                <select
+                                                    value={hojaSeleccionada}
+                                                    onChange={(e) => setHojasSeleccionadas((actuales) => ({
+                                                        ...actuales,
+                                                        [p.id]: e.target.value,
+                                                    }))}
+                                                    className="min-w-44 border-0 bg-transparent px-2 py-1 text-xs text-gray-700 focus:ring-0"
+                                                >
+                                                    {opcionesHojas.length === 0 ? (
+                                                        <option value="">Sin hojas</option>
+                                                    ) : (
+                                                        opcionesHojas.map((opcion) => (
+                                                            <option key={opcion.value} value={opcion.value}>{opcion.label}</option>
+                                                        ))
+                                                    )}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => descargarPdfHoja(p)}
+                                                    title="Descargar PDF individual por provincia y tipo"
+                                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                                                    disabled={opcionesHojas.length === 0}
+                                                >
+                                                    <Download className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => descargarPdfRepetidos(p)}
+                                                title="Descargar PDF de sellos repetidos"
+                                                className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 hover:text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 shadow-sm hover:bg-red-100/70 transition">
+                                                <Printer className="h-3.5 w-3.5" />
+                                                Repetidos
+                                                {totalRepetidos > 0 && (
+                                                    <span className="rounded bg-white/80 px-1.5 py-0.5 text-[10px] text-red-700">{totalRepetidos}</span>
+                                                )}
                                             </button>
 
                                             <button onClick={() => verDetalle(p)}

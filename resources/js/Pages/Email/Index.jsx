@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
 
 export default function EnvioPedidosModulo() {
+    const { feedbackModal, notify } = useFeedbackModal();
     // Estados del formulario clásico
     const [proveedorId, setProveedorId] = useState('');
     const [colegioId, setColegioId] = useState('');
@@ -39,7 +41,11 @@ export default function EnvioPedidosModulo() {
                 setMostrarPrevisualizacion(true);
             }
         } catch (error) {
-            alert('Error al generar el borrador: ' + error.response?.data?.mensaje);
+            notify({
+                title: 'Error al generar borrador',
+                message: error.response?.data?.mensaje ?? 'No se pudo generar el borrador.',
+                tone: 'danger',
+            });
         } finally {
             setCargando(false);
         }
@@ -60,11 +66,19 @@ export default function EnvioPedidosModulo() {
             });
 
             if (response.data.success) {
-                alert(response.data.mensaje);
+                await notify({
+                    title: 'Pedido enviado',
+                    message: response.data.mensaje,
+                    tone: 'success',
+                });
                 setMostrarPrevisualizacion(false); // Cerramos el panel
             }
         } catch (error) {
-            alert('Error al enviar el pedido: ' + error.response?.data?.mensaje);
+            notify({
+                title: 'Error al enviar pedido',
+                message: error.response?.data?.mensaje ?? 'No se pudo enviar el pedido.',
+                tone: 'danger',
+            });
         } finally {
             setCargando(false);
         }
@@ -72,6 +86,7 @@ export default function EnvioPedidosModulo() {
 
     return (
         <div className="p-6 bg-slate-50 min-h-screen">
+            {feedbackModal}
             <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
                 <h1 className="text-2xl font-bold text-slate-800 mb-6">📦 Emisión de Órdenes a Proveedores</h1>
                 

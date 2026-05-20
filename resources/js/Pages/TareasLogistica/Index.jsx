@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Layout from '../../Template/LayaoutNav';
 import { router } from '@inertiajs/react'; // Importamos el router nativo de Inertia
+import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
 
 const COLORES = {
     sellos:      { bg: 'bg-blue-600',   border: 'border-blue-100',   badge: 'bg-blue-50 text-blue-700',     icon: '🔵' },
@@ -23,6 +24,7 @@ const ESTADO_ESTILOS = {
 
 // Recibimos "tareas" directamente como Prop desde Laravel
 export default function TareasLogistica({ tareas = {} }) {
+    const { feedbackModal, notify, confirm } = useFeedbackModal();
     
     // Aseguramos que todas las llaves existan por defecto para evitar errores de renderizado
     const tareasSeguras = {
@@ -57,10 +59,22 @@ export default function TareasLogistica({ tareas = {} }) {
     };
 
     // Eliminar usando Inertia router
-    const handleEliminar = (tareaId) => {
-        if (!confirm('¿Eliminar esta tarea?')) return;
+    const handleEliminar = async (tareaId) => {
+        const ok = await confirm({
+            title: 'Eliminar tarea',
+            message: 'Se eliminara la tarea logistica y sus asignaciones asociadas. Esta accion no se puede deshacer.',
+            tone: 'danger',
+            confirmText: 'Eliminar',
+        });
+        if (!ok) return;
+
         router.delete(`/tareas-logistica/${tareaId}`, {
             preserveScroll: true,
+            onSuccess: () => notify({
+                title: 'Tarea eliminada',
+                message: 'La tarea se elimino correctamente.',
+                tone: 'success',
+            }),
         });
     };
 
@@ -87,6 +101,7 @@ export default function TareasLogistica({ tareas = {} }) {
 
     return (
         <Layout>
+            {feedbackModal}
             <div className="space-y-8 max-w-[1600px] mx-auto p-2">
 
                 {/* HEADER */}

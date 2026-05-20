@@ -22,7 +22,7 @@ public function up(): void
     public function down(): void
     {
         Schema::table('tareas', function (Blueprint $table) {
-            //
+            $table->dropColumn('tarea_logistica_id');
         });
     }
 };

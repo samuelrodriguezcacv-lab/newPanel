@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Sello;
-use App\Models\Tarea;
+use App\Models\TareaLogistica;
 
 class SellosService
 {
@@ -32,7 +32,7 @@ if ($esAutomatico) {
         'orden' => $ultimoOrden + 1,
     ]);
 }
-    public function adjuntarATask(Tarea $tarea, array $datos, bool $forzarNuevo = false): Sello
+    public function adjuntarATask(TareaLogistica $tarea, array $datos, bool $forzarNuevo = false): Sello
     {
         $sello = $this->resolverSello($datos, $forzarNuevo);
 

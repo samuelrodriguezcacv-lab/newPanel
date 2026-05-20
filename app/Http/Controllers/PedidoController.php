@@ -20,10 +20,7 @@ class PedidoController extends Controller
 
     public function store(Request $request)
     {
-        $pedido = PedidoModel::create([
-            'numero_pedido' => PedidoModel::generarNumeroPedido(),
-            'fecha'         => now(),
-        ]);
+        $pedido = PedidoModel::abiertoActual();
 
         return response()->json($pedido, 201);
     }

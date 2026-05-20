@@ -1,59 +1,279 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Herramientas Logistica
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicacion interna de logistica hecha con Laravel, Inertia, React y Tailwind. Centraliza tareas logisticas y separa los flujos de sellos, metacrilatos y pedidos a proveedores.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12
+- PHP 8.2+
+- Inertia Laravel
+- React 18
+- Tailwind CSS
+- Vite
+- MySQL o MariaDB
+- PDFtk Server para rellenar plantillas PDF de metacrilatos
+- DomPDF para albaranes de proveedores
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Modulos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Tareas logisticas
 
-## Learning Laravel
+Tabla principal: `tareas_logistica`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Es el panel operativo. Una tarea puede ser de tipo:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- `sellos`
+- `metacrilato`
+- `anulacion`
+- `devolucion`
+- `carnets`
+- `otro`
 
-## Laravel Sponsors
+Desde una tarea de sellos se abre el flujo de nuevo pedido de sellos. Desde una tarea de metacrilato se abre el flujo de metacrilatos.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Sellos
 
-### Premium Partners
+Tablas principales:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- `All_sellos`
+- `pedidos`
+- `tarea_sello`
+- `tareas_logistica`
 
-## Contributing
+`pedidos` representa pedidos de sellos. El nombre historico es generico, pero funcionalmente son pedidos de sellos.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Flujo:
 
-## Code of Conduct
+1. Se usa el pedido de sellos abierto.
+2. Si no existe pedido abierto, se crea automaticamente.
+3. Los sellos se acumulan en la tarea activa.
+4. Al confirmar, se guardan en `tarea_sello`.
+5. Al cerrar el pedido, el siguiente sello entra en un pedido nuevo o abierto.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Metacrilatos
 
-## Security Vulnerabilities
+Tablas principales:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- `metacrilatos`
+- `pedidos_metacrilatos`
+- `tareas_logistica`
 
-## License
+Flujo:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. Se usa el pedido de metacrilatos abierto.
+2. Si no existe pedido abierto, se crea automaticamente.
+3. Cada metacrilato guarda su tarea logistica y su pedido de metacrilatos.
+4. Al cerrar el pedido, los proximos metacrilatos entran en otro pedido abierto/nuevo.
+5. Los PDF se rellenan con PDFtk usando `Plantilla.pdf`.
+
+### Envio a proveedores
+
+Tablas principales:
+
+- `proveedores`
+- `productos`
+- `colegios_veterinarios`
+- `pedidos_colegios`
+- `pedido_lineas`
+
+Flujo:
+
+1. Se selecciona proveedor.
+2. Se selecciona colegio veterinario.
+3. Se agregan lineas de productos.
+4. Se genera pedido, albaran PDF y correo con adjunto.
+5. El estado del pedido puede actualizarse desde el panel.
+
+## Relaciones principales
+
+```text
+tareas_logistica
+  ├─ tarea_sello
+  │    ├─ All_sellos
+  │    └─ pedidos
+  │
+  └─ metacrilatos
+       └─ pedidos_metacrilatos
+
+proveedores
+  ├─ productos
+  └─ pedidos_colegios
+       └─ pedido_lineas
+
+colegios_veterinarios
+  └─ pedidos_colegios
+```
+
+## Pedido abierto automatico
+
+La aplicacion usa una regla importante:
+
+```text
+Si hay un pedido abierto, todo entra ahi.
+Si no hay pedido abierto, se crea uno automaticamente.
+Cuando se cierra, lo siguiente entra en otro pedido.
+```
+
+Esto aplica a:
+
+- pedidos de sellos (`pedidos`)
+- pedidos de metacrilatos (`pedidos_metacrilatos`)
+
+## Estructura frontend
+
+El frontend sigue una estructura tipo atomic design:
+
+```text
+resources/js/Components/atoms
+resources/js/Components/molecules
+resources/js/Components/organisms
+resources/js/Pages
+resources/js/Hooks
+resources/js/Services
+```
+
+Componentes relevantes:
+
+- `Components/molecules/FeedbackModal.jsx`: modal reutilizable para avisos y confirmaciones.
+- `Hooks/useFeedbackModal.jsx`: hook para reemplazar `alert()` y `confirm()`.
+- `Components/Modal.jsx`: modal base con Headless UI.
+
+## Instalacion
+
+1. Instalar dependencias PHP:
+
+```bash
+composer install
+```
+
+2. Instalar dependencias frontend:
+
+```bash
+npm install
+```
+
+3. Crear entorno:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+4. Configurar base de datos en `.env`.
+
+5. Ejecutar migraciones:
+
+```bash
+php artisan migrate
+```
+
+6. Compilar frontend:
+
+```bash
+npm run build
+```
+
+## Desarrollo
+
+Levantar Vite:
+
+```bash
+npm run dev
+```
+
+Levantar Laravel:
+
+```bash
+php artisan serve
+```
+
+Tambien existe el script:
+
+```bash
+composer run dev
+```
+
+que arranca servidor, cola, logs y Vite.
+
+## PDFtk
+
+Para metacrilatos se necesita PDFtk Server. La ruta por defecto esta configurada en `config/services.php`:
+
+```text
+C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe
+```
+
+Se puede sobrescribir en `.env`:
+
+```env
+PDFTK_BINARY="C:\Program Files (x86)\PDFtk Server\bin\pdftk.exe"
+```
+
+Plantillas compatibles:
+
+- `storage/app/Plantilla.pdf`
+- `public/templates/Plantilla.pdf`
+
+El controlador rellena ambos pares de campos conocidos:
+
+- `tipo_veterinario` / `Texto2`
+- `tipo_centro` / `registro_num`
+
+## Comandos utiles
+
+Listar rutas:
+
+```bash
+php artisan route:list
+```
+
+Ejecutar tests:
+
+```bash
+php artisan test
+```
+
+Compilar frontend:
+
+```bash
+npm run build
+```
+
+Importadores historicos de sellos:
+
+```bash
+php artisan sellos:importar198
+php artisan sellos:importar199
+php artisan sellos:importar200
+php artisan sellos:importar201
+php artisan sellos:importar202
+php artisan sellos:importar203
+```
+
+## Rutas principales
+
+- `/dashboard`
+- `/tareas-logistica`
+- `/sellos/pedidos/nuevo-pedido`
+- `/sellos/pedidos`
+- `/sellos/tareas`
+- `/sellos/gestion/todos`
+- `/metacrilatos`
+- `/metacrilatos/pedidos`
+- `/metacrilatos/tareas`
+- `/envio-proveedores`
+
+## Seguridad
+
+`.env` esta ignorado por Git. Si existe un archivo como `.env.rar` con credenciales reales, debe eliminarse del repositorio antes de publicar o subir el proyecto.
+
+## Verificacion actual
+
+Comandos usados para validar:
+
+```bash
+php artisan test
+npm run build
+```
+
+Los tests existentes cubren sobre todo autenticacion y perfil. Conviene anadir tests de flujo para sellos, metacrilatos y proveedores.
