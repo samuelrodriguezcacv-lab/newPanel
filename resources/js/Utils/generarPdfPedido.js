@@ -9,6 +9,7 @@ import {
   UnderlineType,
 } from "docx";
 import { saveAs } from "file-saver";
+import { getSellosRepetidosApi } from "../Services/pedidoService"
 
 import calibriRegularUrl from "../../fonts/calibri-regular.ttf?url";
 import calibriBoldUrl from "../../fonts/calibri-bold.ttf?url";
@@ -168,27 +169,43 @@ function pintarColegioPdf(doc, provincia, y) {
   return y + 12;
 }
 
-function pintarCabeceraColumnasPdf(doc, y) {
+function pintarCabeceraColumnasPdf(doc, y, mostrarPedido = false) {
   doc.setFont("Calibri", "bold");
   doc.setFontSize(11);
-  doc.text("Tarea", 12, y);
-  doc.text("Nombre", 32, y);
-  doc.text("Apellido1", 70, y);
-  doc.text("Apellido2", 110, y);
-  doc.text("Nuevo numero", 155, y);
-
+  if (mostrarPedido) {
+    doc.text("Pedido", 12, y);
+    doc.text("Tarea", 34, y);
+    doc.text("Nombre", 58, y);
+    doc.text("Apellido1", 92, y);
+    doc.text("Apellido2", 130, y);
+    doc.text("Nuevo numero", 167, y);
+  } else {
+    doc.text("Tarea", 12, y);
+    doc.text("Nombre", 32, y);
+    doc.text("Apellido1", 70, y);
+    doc.text("Apellido2", 110, y);
+    doc.text("Nuevo numero", 155, y);
+  }
   return y + 7;
 }
 
-function pintarSelloPdf(doc, sello, y) {
+function pintarSelloPdf(doc, sello, y, mostrarPedido = false) {
   doc.setFont("Calibri", "normal");
   doc.setFontSize(10);
-  doc.text(String(sello.tarea ?? ""), 12, y);
-  doc.text(String(sello.nombre ?? ""), 32, y);
-  doc.text(String(sello.apellido1 ?? ""), 70, y);
-  doc.text(String(sello.apellido2 ?? ""), 110, y);
-  doc.text(String(sello.codigo_sello ?? ""), 155, y);
-
+  if (mostrarPedido) {
+    doc.text(String(sello.numero_pedido ?? ""), 12, y);
+    doc.text(String(sello.tarea ?? ""), 34, y);
+    doc.text(String(sello.nombre ?? ""), 58, y);
+    doc.text(String(sello.apellido1 ?? ""), 92, y);
+    doc.text(String(sello.apellido2 ?? ""), 130, y);
+    doc.text(String(sello.codigo_sello ?? ""), 167, y);
+  } else {
+    doc.text(String(sello.tarea ?? ""), 12, y);
+    doc.text(String(sello.nombre ?? ""), 32, y);
+    doc.text(String(sello.apellido1 ?? ""), 70, y);
+    doc.text(String(sello.apellido2 ?? ""), 110, y);
+    doc.text(String(sello.codigo_sello ?? ""), 155, y);
+  }
   return y + 6;
 }
 
@@ -579,16 +596,141 @@ export async function generarPdfRepetidosPedido(pedido) {
 
   await registrarCalibri(doc);
 
-  const sellos = extraerSellosPedido(pedido).filter((sello) => Number(sello.veces_generado ?? 0) > 0);
+  // Obtener sellos repetidos REALES desde API
+  const response = await getSellosRepetidosApi();
 
-  pintarListadoSellosPdf(
-    doc,
-    "SELLOS REPETIDOS",
-    sellos,
-    `Pedido ${pedido.numero_pedido}`
+  // Solo sellos relacionados con este pedido
+  const todosRepetidos = response.data.filter((sello) =>
+    sello.historial?.some(
+      (h) => String(h.pedido) === String(pedido.numero_pedido)
+    )
   );
 
-  doc.save(`pedido-${pedido.numero_pedido}-sellos-repetidos.pdf`);
+  // Agrupar por provincia
+  const porProvincia = {};
+
+  todosRepetidos.forEach((sello) => {
+    const provincia = normalizarProvincia(
+      sello.prefijo_postal
+    );
+
+    if (!porProvincia[provincia]) {
+      porProvincia[provincia] = [];
+    }
+
+    porProvincia[provincia].push(sello);
+  });
+
+  const entradasOrdenadas =
+    Object.entries(porProvincia).sort();
+
+  let y = 18;
+
+  // TITULO
+  doc.setFont("Calibri", "bold");
+  doc.setFontSize(13);
+
+  doc.text("SELLOS REPETIDOS", 105, y, {
+    align: "center",
+  });
+
+  subrayarTexto(
+    doc,
+    "SELLOS REPETIDOS",
+    105,
+    y,
+    "center"
+  );
+
+  y += 10;
+
+  doc.setFont("Calibri", "normal");
+  doc.setFontSize(10);
+
+  doc.text(`Pedido ${pedido.numero_pedido}`, 12, y);
+
+  y += 10;
+
+  // Sin resultados
+  if (entradasOrdenadas.length === 0) {
+
+    doc.text(
+      "No hay sellos repetidos en este pedido.",
+      12,
+      y
+    );
+
+    doc.save(
+      `pedido-${pedido.numero_pedido}-sellos-repetidos.pdf`
+    );
+
+    return;
+  }
+
+  // Provincias
+  entradasOrdenadas.forEach(([provincia, sellos]) => {
+
+    y = comprobarSaltoPagina(doc, y, 20);
+
+    const tituloProvincia =
+      `COLEGIO DE ${nombreProvincia(provincia)}`;
+
+    doc.setFont("Calibri", "bold");
+    doc.setFontSize(12);
+
+    doc.text(tituloProvincia, 12, y);
+
+    subrayarTexto(
+      doc,
+      tituloProvincia,
+      12,
+      y,
+      "left"
+    );
+
+    y += 10;
+
+    // Cabecera
+    y = pintarCabeceraColumnasPdf(doc, y, false);
+
+    // Sellos
+    sellos.forEach((sello) => {
+
+      y = comprobarSaltoPagina(doc, y, 18);
+
+      // Pintar fila normal
+      y = pintarSelloPdf(doc, sello, y, false);
+
+      // Pintar trazabilidad
+      if (sello.historial?.length) {
+
+        doc.setFont("Calibri", "italic");
+        doc.setFontSize(8);
+
+        const trazabilidad = sello.historial
+          .map(
+            (h) => `P${h.pedido}/T${h.tarea}`
+          )
+          .join(" | ");
+
+        doc.text(
+          `Generado en: ${trazabilidad}`,
+          18,
+          y
+        );
+
+        y += 5;
+      }
+
+      y += 2;
+    });
+
+    y += 6;
+  });
+
+  doc.save(
+    `pedido-${pedido.numero_pedido}-sellos-repetidos.pdf`
+  );
 }
 
 export async function generarPdfPedido(pedido) {
