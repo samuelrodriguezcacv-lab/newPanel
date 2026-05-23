@@ -2,6 +2,7 @@ import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import MicrochipLoadingIcon from '@/Components/atoms/MicrochipLoadingIcon.jsx';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -114,7 +115,12 @@ export default function Login({ status, canResetPassword }) {
                         className="flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm normal-case tracking-normal hover:bg-blue-700 focus:bg-blue-700 focus:ring-blue-500 active:bg-blue-800"
                         disabled={processing}
                     >
-                        {processing ? 'Entrando...' : 'Entrar'}
+                        {processing ? (
+                            <span className="inline-flex items-center gap-2">
+                                <MicrochipLoadingIcon size={18} label="Entrando" />
+                                Entrando...
+                            </span>
+                        ) : 'Entrar'}
                     </PrimaryButton>
                 </div>
             </form>

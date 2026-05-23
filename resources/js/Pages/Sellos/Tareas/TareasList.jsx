@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { getTareasApi, updateTareaEstadoApi, eliminarTareaApi, editarTareaApi } from "../../../Services/pedidoService";
 import React from "react";
 import { useFeedbackModal } from "../../../Hooks/useFeedbackModal.jsx";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
     21: "Huelva", 23: "Jaén", 29: "Málaga", 41: "Sevilla"
@@ -142,7 +143,14 @@ useEffect(() => {
                         </thead>
                         <tbody className="divide-y">
                             {cargando ? (
-                                <tr><td colSpan={8} className="text-center py-8 text-gray-400">Cargando...</td></tr>
+                                <tr>
+                                    <td colSpan={8} className="text-center py-8 text-gray-400">
+                                        <span className="inline-flex items-center gap-2">
+                                            <MicrochipLoadingIcon size={22} label="Cargando tareas" />
+                                            Cargando...
+                                        </span>
+                                    </td>
+                                </tr>
                             ) : tareasFiltradas.length === 0 ? (
                                 <tr><td colSpan={8} className="text-center py-8 text-gray-400">No hay tareas</td></tr>
                             ) : (

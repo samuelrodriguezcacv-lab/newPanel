@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
+import MicrochipLoadingIcon from '../../Components/atoms/MicrochipLoadingIcon.jsx';
 
 export default function EnvioPedidosModulo() {
     const { feedbackModal, notify } = useFeedbackModal();
@@ -100,7 +101,12 @@ export default function EnvioPedidosModulo() {
                             disabled={cargando}
                             className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-medium transition"
                         >
-                            {cargando ? 'Procesando datos...' : 'Generar Propuesta de Pedido y Correo'}
+                            {cargando ? (
+                                <span className="inline-flex items-center gap-2">
+                                    <MicrochipLoadingIcon size={18} label="Procesando datos" />
+                                    Procesando datos...
+                                </span>
+                            ) : 'Generar Propuesta de Pedido y Correo'}
                         </button>
                     )}
                 </form>
@@ -162,7 +168,12 @@ export default function EnvioPedidosModulo() {
                                     disabled={cargando}
                                     className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 shadow transition"
                                 >
-                                    {cargando ? 'Enviando...' : '🚀 Confirmar y Enviar Correo con PDF'}
+                                    {cargando ? (
+                                        <span className="inline-flex items-center gap-2">
+                                            <MicrochipLoadingIcon size={18} label="Enviando correo" />
+                                            Enviando...
+                                        </span>
+                                    ) : '🚀 Confirmar y Enviar Correo con PDF'}
                                 </button>
                             </div>
                         </div>

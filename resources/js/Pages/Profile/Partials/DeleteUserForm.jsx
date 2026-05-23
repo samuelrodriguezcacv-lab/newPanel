@@ -1,4 +1,5 @@
 import DangerButton from '@/Components/DangerButton';
+import MicrochipLoadingIcon from '@/Components/atoms/MicrochipLoadingIcon.jsx';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
@@ -110,7 +111,12 @@ export default function DeleteUserForm({ className = '' }) {
                         </SecondaryButton>
 
                         <DangerButton className="ms-3" disabled={processing}>
-                            Delete Account
+                            {processing ? (
+                                <span className="inline-flex items-center gap-2">
+                                    <MicrochipLoadingIcon size={18} label="Eliminando cuenta" />
+                                    Deleting...
+                                </span>
+                            ) : 'Delete Account'}
                         </DangerButton>
                     </div>
                 </form>

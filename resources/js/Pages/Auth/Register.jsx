@@ -1,6 +1,7 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import MicrochipLoadingIcon from '@/Components/atoms/MicrochipLoadingIcon.jsx';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -111,7 +112,12 @@ export default function Register() {
                     </Link>
 
                     <PrimaryButton className="ms-4" disabled={processing}>
-                        Register
+                        {processing ? (
+                            <span className="inline-flex items-center gap-2">
+                                <MicrochipLoadingIcon size={18} label="Registrando" />
+                                Registering...
+                            </span>
+                        ) : 'Register'}
                     </PrimaryButton>
                 </div>
             </form>

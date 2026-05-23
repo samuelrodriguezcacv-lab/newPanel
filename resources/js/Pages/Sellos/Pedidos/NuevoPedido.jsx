@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Layout from "../../../Template/LayaoutNav.jsx";
 import Button from "../../../Components/atoms/button.jsx";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 import Input from "../../../Components/atoms/input.jsx";
 import SelectorToggle from "../../../Components/atoms/SelectorToggle.jsx";
 import ErrorCampo from "../../../Components/atoms/ErrorCampo.jsx";
@@ -83,7 +84,12 @@ export default function NuevoPedido() {
                         {!pedido ? (
                             <div className="space-y-4">
                                 <Button variant="primary" onClick={crearPedido} disabled={cargando}>
-                                    {cargando ? "Creando..." : "+ Nuevo Pedido"}
+                                    {cargando ? (
+                                        <span className="inline-flex items-center gap-2">
+                                            <MicrochipLoadingIcon size={18} label="Creando pedido" />
+                                            Creando...
+                                        </span>
+                                    ) : "+ Nuevo Pedido"}
                                 </Button>
                                 {pedidos.length > 0 && (
                                     <div className="space-y-2">
@@ -211,7 +217,12 @@ export default function NuevoPedido() {
 
 <Button variant="primary" onClick={acumularSello} disabled={cargandoSello}>
     {cargandoSello 
-        ? "Guardando..." 
+        ? (
+            <span className="inline-flex items-center gap-2">
+                <MicrochipLoadingIcon size={18} label="Guardando sello" />
+                Guardando...
+            </span>
+        ) 
         : editandoIndex !== null 
             ? "✏️ Actualizar sello" 
             : "Acumular Sello"}

@@ -4,6 +4,7 @@ import { getSellosApi, editarSelloApi, eliminarSelloApi } from "../../../Service
 import Input from "../../../Components/atoms/input.jsx";
 import Button from "../../../Components/atoms/button.jsx";
 import { useFeedbackModal } from "../../../Hooks/useFeedbackModal.jsx";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -152,7 +153,12 @@ export default function TodosSellos() {
                             <tbody className="text-sm divide-y divide-slate-100 text-slate-700">
                                 {cargando ? (
                                     <tr>
-                                        <td colSpan="8" className="text-center py-12 text-slate-400 animate-pulse">Cargando registros...</td>
+                                        <td colSpan="8" className="text-center py-12 text-slate-400">
+                                            <span className="inline-flex items-center gap-2">
+                                                <MicrochipLoadingIcon size={22} label="Cargando registros" />
+                                                Cargando registros...
+                                            </span>
+                                        </td>
                                     </tr>
                                 ) : sellosFiltrados.length === 0 ? (
                                     <tr>

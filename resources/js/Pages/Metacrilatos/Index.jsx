@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import Layout from '../../Template/LayaoutNav';
 import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
+import MicrochipLoadingIcon from '../../Components/atoms/MicrochipLoadingIcon.jsx';
 
 const PROVINCIAS = {
     4: 'Almeria',
@@ -264,7 +265,12 @@ export default function Index() {
                                                 disabled={guardando || !form.tipo_centro || !form.codigo_registro}
                                                 className="w-full px-4 py-3 font-semibold rounded-3xl transition-all active:scale-[0.98] text-white bg-gradient-to-r from-[#166534] to-[#15803d] hover:from-[#15803d] hover:to-[#14532d] shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                {guardando ? 'Guardando...' : 'Anadir al pedido'}
+                                                {guardando ? (
+                                                    <span className="inline-flex items-center justify-center gap-2">
+                                                        <MicrochipLoadingIcon size={18} label="Guardando metacrilato" />
+                                                        Guardando...
+                                                    </span>
+                                                ) : 'Anadir al pedido'}
                                             </button>
                                         </form>
 

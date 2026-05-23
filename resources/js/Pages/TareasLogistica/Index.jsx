@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Layout from '../../Template/LayaoutNav';
 import { router } from '@inertiajs/react'; // Importamos el router nativo de Inertia
 import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
+import MicrochipLoadingIcon from '../../Components/atoms/MicrochipLoadingIcon.jsx';
 
 const COLORES = {
     sellos:      { bg: 'bg-blue-600',   border: 'border-blue-100',   badge: 'bg-blue-50 text-blue-700',     icon: '🔵' },
@@ -336,7 +337,12 @@ export default function TareasLogistica({ tareas = {} }) {
                                     </button>
                                     <button type="submit" disabled={guardando}
                                         className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-xl transition-all text-sm disabled:opacity-50">
-                                        {guardando ? 'Guardando...' : 'Guardar Tarea'}
+                                        {guardando ? (
+                                            <span className="inline-flex items-center justify-center gap-2">
+                                                <MicrochipLoadingIcon size={18} label="Guardando tarea" />
+                                                Guardando...
+                                            </span>
+                                        ) : 'Guardar Tarea'}
                                     </button>
                                 </div>
                             </form>

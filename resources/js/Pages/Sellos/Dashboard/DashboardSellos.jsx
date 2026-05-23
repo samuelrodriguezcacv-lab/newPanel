@@ -1,5 +1,6 @@
 import Layout from "../../../Template/LayaoutNav.jsx";
 import Card from "../../../Components/atoms/Card.jsx";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 import { useState, useEffect } from "react";
 import { getMetricasApi } from "../../../Services/pedidoService";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -74,19 +75,19 @@ export default function DashboardSellos() {
                 {/* MÉTRICAS */}
                 <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
                     <Card type="primary" title="Total de Sellos"
-                        value={cargando ? "..." : metricas.total_sellos}
+                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando total de sellos" /> : metricas.total_sellos}
                         description="Sellos registrados"/>
                     <Card type="secondary" title="Pedidos este mes"
-                        value={cargando ? "..." : metricas.total_pedidos}
+                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando pedidos del mes" /> : metricas.total_pedidos}
                         description="Pedidos del mes actual"/>
                     <Card type="secondary" title="Sellos Repetidos"
-                        value={cargando ? "..." : metricas.sellos_repetidos}
+                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos repetidos" /> : metricas.sellos_repetidos}
                         description="Con coste adicional"/>
                     <Card type="secondary" title="Sellos Manuales"
-                        value={cargando ? "..." : metricas.total_manuales}
+                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos manuales" /> : metricas.total_manuales}
                         description="Tipo manual"/>
                     <Card type="secondary" title="Sellos Automáticos"
-                        value={cargando ? "..." : metricas.total_automaticos}
+                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos automaticos" /> : metricas.total_automaticos}
                         description="Tipo automático"/>
                 </div>
 
@@ -94,15 +95,15 @@ export default function DashboardSellos() {
                 <div className="grid grid-cols-3 gap-4">
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                         <p className="text-xs text-green-600 uppercase font-semibold">Pedidos Abiertos</p>
-                        <p className="text-3xl font-bold text-green-700">{cargando ? "..." : metricas.pedidos_abiertos}</p>
+                        <p className="text-3xl font-bold text-green-700">{cargando ? <MicrochipLoadingIcon size={26} label="Cargando pedidos abiertos" /> : metricas.pedidos_abiertos}</p>
                     </div>
                     <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                         <p className="text-xs text-red-600 uppercase font-semibold">Pedidos Cerrados</p>
-                        <p className="text-3xl font-bold text-red-700">{cargando ? "..." : metricas.pedidos_cerrados}</p>
+                        <p className="text-3xl font-bold text-red-700">{cargando ? <MicrochipLoadingIcon size={26} label="Cargando pedidos cerrados" /> : metricas.pedidos_cerrados}</p>
                     </div>
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                         <p className="text-xs text-blue-600 uppercase font-semibold">Pedidos Enviados</p>
-                        <p className="text-3xl font-bold text-blue-700">{cargando ? "..." : metricas.pedidos_enviados}</p>
+                        <p className="text-3xl font-bold text-blue-700">{cargando ? <MicrochipLoadingIcon size={26} label="Cargando pedidos enviados" /> : metricas.pedidos_enviados}</p>
                     </div>
                 </div>
 
@@ -117,7 +118,10 @@ export default function DashboardSellos() {
                         )}
                     </h2>
                     {cargando ? (
-                        <p className="text-sm text-slate-400">Cargando gráfico...</p>
+                        <p className="inline-flex items-center gap-2 text-sm text-slate-400">
+                            <MicrochipLoadingIcon size={20} label="Cargando grafico" />
+                            Cargando gráfico...
+                        </p>
                     ) : (
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={datosGrafico} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>

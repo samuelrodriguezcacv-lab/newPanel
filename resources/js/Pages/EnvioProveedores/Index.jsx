@@ -5,6 +5,7 @@ import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { Clock, CheckCircle, FileText, Plus, Trash2, ShoppingBag, Truck, MapPin } from 'lucide-react';
 import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
+import MicrochipLoadingIcon from '../../Components/atoms/MicrochipLoadingIcon.jsx';
 
 export default function Index({ proveedores, colegios, pedidos = [] }) {
     const { feedbackModal, notify, confirm } = useFeedbackModal();
@@ -236,7 +237,12 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
                                     disabled={enviando}
                                     className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 tracking-wide text-sm"
                                 >
-                                    {enviando ? 'Procesando y Guardando...' : 'Generar y Emitir Orden de Pedido'}
+                                    {enviando ? (
+                                        <span className="inline-flex items-center justify-center gap-2">
+                                            <MicrochipLoadingIcon size={18} label="Procesando orden de pedido" />
+                                            Procesando y guardando...
+                                        </span>
+                                    ) : 'Generar y Emitir Orden de Pedido'}
                                 </button>
                             </form>
                         </div>
@@ -273,7 +279,7 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
                                                             {pedido.numero_pedido}
                                                         </span>
                                                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 dynamic-pulse">
-                                                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                                                            <MicrochipLoadingIcon size={14} label="Pedido pendiente" />
                                                             Pendiente
                                                         </span>
                                                     </div>

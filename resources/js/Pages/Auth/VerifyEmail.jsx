@@ -1,4 +1,5 @@
 import PrimaryButton from '@/Components/PrimaryButton';
+import MicrochipLoadingIcon from '@/Components/atoms/MicrochipLoadingIcon.jsx';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
@@ -32,7 +33,12 @@ export default function VerifyEmail({ status }) {
             <form onSubmit={submit}>
                 <div className="mt-4 flex items-center justify-between">
                     <PrimaryButton disabled={processing}>
-                        Resend Verification Email
+                        {processing ? (
+                            <span className="inline-flex items-center gap-2">
+                                <MicrochipLoadingIcon size={18} label="Reenviando verificacion" />
+                                Sending...
+                            </span>
+                        ) : 'Resend Verification Email'}
                     </PrimaryButton>
 
                     <Link

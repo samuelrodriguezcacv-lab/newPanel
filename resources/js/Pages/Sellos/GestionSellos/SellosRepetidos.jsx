@@ -2,6 +2,7 @@ import Layout from "../../../Template/LayaoutNav.jsx";
 import { useState, useEffect } from "react";
 import { getSellosRepetidosApi } from "../../../Services/pedidoService";
 import { Link } from "@inertiajs/react";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -105,7 +106,10 @@ export default function SellosRepetidos() {
                                 {cargando ? (
                                     <tr>
                                         <td colSpan={7} className="text-center py-12 text-gray-400 font-medium bg-gray-50/30">
-                                            <span className="inline-block animate-pulse">Cargando registros duplicados...</span>
+                                            <span className="inline-flex items-center gap-2">
+                                                <MicrochipLoadingIcon size={22} label="Cargando registros duplicados" />
+                                                Cargando registros duplicados...
+                                            </span>
                                         </td>
                                     </tr>
                                 ) : sellosFiltrados.length === 0 ? (

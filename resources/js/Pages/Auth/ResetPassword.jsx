@@ -1,6 +1,7 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import MicrochipLoadingIcon from '@/Components/atoms/MicrochipLoadingIcon.jsx';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
@@ -85,7 +86,12 @@ export default function ResetPassword({ token, email }) {
 
                 <div className="mt-4 flex items-center justify-end">
                     <PrimaryButton className="ms-4" disabled={processing}>
-                        Reset Password
+                        {processing ? (
+                            <span className="inline-flex items-center gap-2">
+                                <MicrochipLoadingIcon size={18} label="Restableciendo contrasena" />
+                                Resetting...
+                            </span>
+                        ) : 'Reset Password'}
                     </PrimaryButton>
                 </div>
             </form>

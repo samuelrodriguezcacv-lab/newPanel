@@ -1,5 +1,6 @@
 <?php 
 use App\Http\Controllers\AllSellosController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\TareaController;
 use Inertia\Inertia;

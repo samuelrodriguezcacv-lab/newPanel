@@ -3,6 +3,7 @@ import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import Layout from '../../../Template/LayaoutNav';
 import { useFeedbackModal } from '../../../Hooks/useFeedbackModal';
+import MicrochipLoadingIcon from '../../../Components/atoms/MicrochipLoadingIcon.jsx';
 import { 
     ChevronRight, 
     Plus, 
@@ -352,7 +353,12 @@ const totales = useMemo(() => {
                                                         disabled={guardando || !colegioId || lineas.length === 0}
                                                         className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold mt-4 shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
                                                     >
-                                                        {guardando ? 'Procesando...' : (
+                                                        {guardando ? (
+                                                            <span className="inline-flex items-center justify-center gap-2">
+                                                                <MicrochipLoadingIcon size={18} label="Procesando pedido" />
+                                                                Procesando...
+                                                            </span>
+                                                        ) : (
                                                             <> <CheckCircle size={18} /> Confirmar Pedido </>
                                                         )}
                                                     </button>

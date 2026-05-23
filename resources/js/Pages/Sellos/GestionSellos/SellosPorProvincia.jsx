@@ -1,6 +1,7 @@
 import Layout from "../../../Template/LayaoutNav.jsx";
 import { useState, useEffect } from "react";
 import { getSellosProvinciaApi } from "../../../Services/pedidoService";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -25,7 +26,10 @@ export default function SellosPorProvincia() {
                 <h1 className="text-2xl font-bold text-gray-900">Sellos por Provincia</h1>
 
                 {cargando ? (
-                    <p className="text-gray-400">Cargando...</p>
+                    <p className="inline-flex items-center gap-2 text-gray-400">
+                        <MicrochipLoadingIcon size={20} label="Cargando sellos por provincia" />
+                        Cargando...
+                    </p>
                 ) : (
                     <>
                         {/* TARJETAS RESUMEN */}

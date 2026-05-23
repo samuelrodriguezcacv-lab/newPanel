@@ -11,6 +11,7 @@ import {
 import { usePage } from "@inertiajs/react";
 import { useFeedbackModal } from "../../../Hooks/useFeedbackModal.jsx";
 import { Download, FileText, Printer } from "lucide-react";
+import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
 
 const PROVINCIAS = {
     4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
@@ -179,7 +180,10 @@ export default function PedidosList() {
                 <div className="space-y-4">
                     {cargando ? (
                         <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-xl shadow-sm">
-                            <span className="inline-block animate-pulse font-medium">Cargando listado de pedidos...</span>
+                            <span className="inline-flex items-center gap-2 font-medium">
+                                <MicrochipLoadingIcon size={22} label="Cargando listado de pedidos" />
+                                Cargando listado de pedidos...
+                            </span>
                         </div>
                     ) : pedidosFiltrados.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-xl shadow-sm">

@@ -1,4 +1,5 @@
 import Modal from '../Modal';
+import MicrochipLoadingIcon from '../atoms/MicrochipLoadingIcon';
 
 const toneStyles = {
     info: {
@@ -69,7 +70,12 @@ export default function FeedbackModal({
                         disabled={loading}
                         className={`rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-4 disabled:opacity-50 ${styles.primary}`}
                     >
-                        {loading ? 'Procesando...' : confirmText}
+                        {loading ? (
+                            <span className="inline-flex items-center gap-2">
+                                <MicrochipLoadingIcon size={18} label="Procesando" />
+                                Procesando...
+                            </span>
+                        ) : confirmText}
                     </button>
                 </div>
             </div>
