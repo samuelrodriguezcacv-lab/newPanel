@@ -14,6 +14,7 @@ class ColegioVeterinarioModel extends Model
         'direccion',
         'ciudad',
         'codigo_postal',
+        'provincia',
         'cif',
         'telefono',
         'email'

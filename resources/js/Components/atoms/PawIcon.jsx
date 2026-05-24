@@ -4,7 +4,7 @@
 //   filled  → boolean  — si está activa (verde) o inactiva (gris)
 //   delay   → number   — ms de retraso para la transición (stagger efect)
 
-import { GREEN, LIME } from "../../tokens";
+import { GREEN, LIME } from "../MicrochipLoader/tokens";
 
 export default function PawIcon({ filled = false, delay = 0 }) {
   return (

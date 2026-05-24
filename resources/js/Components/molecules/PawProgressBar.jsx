@@ -4,8 +4,8 @@
 //   total    → number — cuántas patitas mostrar en total
 //   filled   → number — cuántas están activas/rellenas
 
-import PawIcon from "../../atoms/PawIcon";
-import { GREEN, LIME } from "../../tokens";
+import PawIcon from "../atoms/PawIcon";
+import { GREEN, LIME } from "../MicrochipLoader/tokens";
 
 export default function PawProgressBar({ total = 7, filled = 0 }) {
   return (

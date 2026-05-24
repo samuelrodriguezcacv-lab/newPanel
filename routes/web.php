@@ -24,4 +24,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     require __DIR__.'/pedidos.php';
     require __DIR__.'/metacrilatos.php';
     require __DIR__.'/tareas.php';
+    require __DIR__.'/incidencias.php';
+    require __DIR__.'/plantilla_envio.php';
 });
