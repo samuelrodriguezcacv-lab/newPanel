@@ -10,4 +10,16 @@ export default defineConfig({
         }),
         react(),
     ],
+    test: {
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: './resources/js/setupTests.js',
+        include: ['resources/js/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+        exclude: ['vendor/**', 'node_modules/**'],
+    },
+    resolve: {
+        alias: {
+            '@': '/resources/js',
+        },
+    },
 });

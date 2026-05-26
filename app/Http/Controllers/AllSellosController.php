@@ -64,7 +64,7 @@ class AllSellosController extends Controller
 
     public function index()
     {
-        $sellos = AllSellosModel::orderBy('created_at', 'desc')->get();
+        $sellos = AllSellosModel::orderBy('created_at', 'desc')->paginate(20);
 
         return response()->json($sellos, 200);
     }

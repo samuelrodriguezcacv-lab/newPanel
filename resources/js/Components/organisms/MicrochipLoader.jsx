@@ -30,7 +30,7 @@ export default function MicrochipLoader({ onComplete }) {
 
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
-        const next = prev + 1;
+        const next = prev + 5;
 
         if (next >= LOADER_STEPS.length) {
           clearInterval(interval);

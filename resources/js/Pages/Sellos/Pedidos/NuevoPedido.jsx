@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import Layout from "../../../Template/LayaoutNav.jsx";
 import Button from "../../../Components/atoms/button.jsx";
 import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
@@ -30,17 +29,10 @@ export default function NuevoPedido() {
     const safeSellos = Array.isArray(sellosAcumulados) ? sellosAcumulados : [];
 
     return (
-        <Layout>
+        <Layout title="Nuevo Pedido" subtitle="Flujo de alta: pedido, tarea y acumulacion de sellos">
             {feedbackModal}
             <div className="max-w-5xl mx-auto p-6 space-y-4">
-
-                {/* HEADER */}
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Nuevo Pedido</h1>
-                    <p className="text-sm text-slate-500 mt-1">Pedido → Tarea → Sellos</p>
-                </div>
-
-                {/* CAJA PEDIDO */}
+{/* CAJA PEDIDO */}
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
                     {/* CABECERA PEDIDO */}
@@ -317,3 +309,4 @@ export default function NuevoPedido() {
         </Layout>
     );
 }
+

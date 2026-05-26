@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { NavItem } from "../molecules/NavItem"
 import { usePage, Link } from '@inertiajs/react' // <-- Importamos Link desde Inertia
-import { Home, Stamp, Settings, ClipboardList, Box, SquareCheckBig, Truck, Layers, ListTodo, LogOut, AlertCircle, FileText } from "lucide-react" // <-- Importamos el icono LogOut
+import { Home, Stamp, Settings, ClipboardList, Box, SquareCheckBig, Truck, Layers, ListTodo, LogOut, AlertCircle, FileText, Mail } from "lucide-react" // <-- Importamos el icono LogOut
 import logo from "../../images/raia.png";
 export default function Sidebar() {
   const [openTools, setOpenTools] = useState(false)
@@ -57,6 +57,13 @@ export default function Sidebar() {
             label="Plantilla de Envio"
             href="/plantilla-envio"
             active={url === '/plantilla-envio'}
+          />
+
+          <NavItem
+            icon={Mail}
+            label="Envio Email"
+            href="/email"
+            active={url === '/email'}
           />
 
           <div>

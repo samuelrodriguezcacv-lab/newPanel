@@ -59,7 +59,12 @@ export const crearSelloApi        = (data)     => axios.post("/sellos", data);
 
 export const actualizarSelloApi   = (id, data) => axios.put(`/sellos/${id}`, data);
 export const editarSelloApi       = (id, data) => axios.put(`/sellos/${id}`, data);
-export const getSellosApi         = ()         => axios.get("/api-sellos/todos");
+export const getSellosApi         = (page = 1)         => 
+    axios.get(`/api-sellos/todos?page=${page}`);
+
+
+
+
 export const getSellosRepetidosApi = ()        => axios.get("/api-sellos/repetidos");
 export const getSellosProvinciaApi = ()        => axios.get("/api-sellos/por-provincia");
 

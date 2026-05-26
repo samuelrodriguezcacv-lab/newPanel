@@ -1,97 +1,41 @@
 import Layout from "../../../Template/LayaoutNav.jsx";
 import Card from "../../../Components/atoms/Card.jsx";
 import MicrochipLoadingIcon from "../../../Components/atoms/MicrochipLoadingIcon.jsx";
-import { useState, useEffect } from "react";
-import { getMetricasApi } from "../../../Services/pedidoService";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-
-const PROVINCIAS = {
-    4: "Almería", 11: "Cádiz", 14: "Córdoba", 18: "Granada",
-    21: "Huelva", 23: "Jaén", 29: "Málaga", 41: "Sevilla"
-};
+import { useDashboardSellos } from "../../../Hooks/useDashboardSellos.jsx";
 
 const COLORES = ["#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac", "#bbf7d0", "#dcfce7"];
 
 export default function DashboardSellos() {
-    const [metricas, setMetricas] = useState(null);
-    const [cargando, setCargando] = useState(true);
-    const [tareaActiva, setTareaActiva] = useState(null); // ← AÑADIDO
-
-    // Leer tarea de la URL
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const tareaUrl = params.get('tarea');
-        if (tareaUrl) {
-            setTareaActiva(tareaUrl);
-        }
-    }, []);
-
-    useEffect(() => {
-        getMetricasApi().then((res) => {
-            setMetricas(res.data);
-            setCargando(false);
-        });
-    }, []);
-
-    const datosGrafico = metricas?.sellos_provincia.map((s) => ({
-        provincia: PROVINCIAS[s.prefijo_postal] ?? s.prefijo_postal,
-        total: s.total,
-    })) ?? [];
+    const { metricas, cargando, tareaActiva, setTareaActiva, datosGrafico } = useDashboardSellos();
 
     return (
-        <Layout>
+        <Layout title="Dashboard Sellos" subtitle="Metricas en tiempo real del circuito de sellos">
             <div className="space-y-6">
                 <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-950">
-                            Dashboard Sellos
-                        </h1>
-                        <p className="text-sm text-slate-500">
-                            Gestión y seguimiento de sellos registrados.
-                        </p>
-                    </div>
-
-                    {/* TAREA ACTIVA */}
                     {tareaActiva && (
                         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2">
                             <div>
                                 <p className="text-xs text-blue-500 font-semibold uppercase">Tarea activa</p>
                                 <p className="text-lg font-bold text-blue-700">#{tareaActiva}</p>
                             </div>
-                            
-                               <a href="/sellos/pedidos/nuevo-pedido"
-                                className="bg-blue-600 text-white text-xs px-3 py-2 rounded-lg hover:bg-blue-700 font-medium">
-                                + Añadir sellos
+
+                            <a href="/sellos/pedidos/nuevo-pedido" className="bg-blue-600 text-white text-xs px-3 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                                + Anadir sellos
                             </a>
-                            <button
-                                onClick={() => setTareaActiva(null)}
-                                className="text-blue-300 hover:text-blue-500 text-lg">
-                                ✕
-                            </button>
+                            <button onClick={() => setTareaActiva(null)} className="text-blue-300 hover:text-blue-500 text-lg">x</button>
                         </div>
                     )}
                 </div>
 
-                {/* MÉTRICAS */}
                 <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-                    <Card type="primary" title="Total de Sellos"
-                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando total de sellos" /> : metricas.total_sellos}
-                        description="Sellos registrados"/>
-                    <Card type="secondary" title="Pedidos este mes"
-                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando pedidos del mes" /> : metricas.total_pedidos}
-                        description="Pedidos del mes actual"/>
-                    <Card type="secondary" title="Sellos Repetidos"
-                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos repetidos" /> : metricas.sellos_repetidos}
-                        description="Con coste adicional"/>
-                    <Card type="secondary" title="Sellos Manuales"
-                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos manuales" /> : metricas.total_manuales}
-                        description="Tipo manual"/>
-                    <Card type="secondary" title="Sellos Automáticos"
-                        value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos automaticos" /> : metricas.total_automaticos}
-                        description="Tipo automático"/>
+                    <Card type="primary" title="Total de Sellos" value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando total de sellos" /> : metricas.total_sellos} description="Sellos registrados"/>
+                    <Card type="secondary" title="Pedidos este mes" value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando pedidos del mes" /> : metricas.total_pedidos} description="Pedidos del mes actual"/>
+                    <Card type="secondary" title="Sellos Repetidos" value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos repetidos" /> : metricas.sellos_repetidos} description="Con coste adicional"/>
+                    <Card type="secondary" title="Sellos Manuales" value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos manuales" /> : metricas.total_manuales} description="Tipo manual"/>
+                    <Card type="secondary" title="Sellos Automaticos" value={cargando ? <MicrochipLoadingIcon size={34} label="Cargando sellos automaticos" /> : metricas.total_automaticos} description="Tipo automatico"/>
                 </div>
 
-                {/* ESTADO PEDIDOS */}
                 <div className="grid grid-cols-3 gap-4">
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                         <p className="text-xs text-green-600 uppercase font-semibold">Pedidos Abiertos</p>
@@ -107,20 +51,15 @@ export default function DashboardSellos() {
                     </div>
                 </div>
 
-                {/* GRÁFICO */}
                 <div className="rounded-2xl bg-white p-5 shadow-sm space-y-4">
                     <h2 className="text-lg font-semibold text-slate-950">
                         Sellos por provincia
-                        {tareaActiva && (
-                            <span className="ml-2 text-sm font-normal text-blue-500">
-                                — Tarea #{tareaActiva}
-                            </span>
-                        )}
+                        {tareaActiva && <span className="ml-2 text-sm font-normal text-blue-500">- Tarea #{tareaActiva}</span>}
                     </h2>
                     {cargando ? (
                         <p className="inline-flex items-center gap-2 text-sm text-slate-400">
                             <MicrochipLoadingIcon size={20} label="Cargando grafico" />
-                            Cargando gráfico...
+                            Cargando grafico...
                         </p>
                     ) : (
                         <ResponsiveContainer width="100%" height={300}>
@@ -129,15 +68,12 @@ export default function DashboardSellos() {
                                 <YAxis tick={{ fontSize: 11 }}/>
                                 <Tooltip/>
                                 <Bar dataKey="total" radius={[6, 6, 0, 0]}>
-                                    {datosGrafico.map((_, i) => (
-                                        <Cell key={i} fill={COLORES[i % COLORES.length]}/>
-                                    ))}
+                                    {datosGrafico.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]}/>) }
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     )}
                 </div>
-
             </div>
         </Layout>
     );

@@ -4,10 +4,37 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { AlertTriangle, Bell, CheckCircle2, Clock, UserRound, X } from "lucide-react";
 
-export default function Layout({ children }) {
-  const user = usePage().props.auth?.user;
+export default function Layout({ children, title, subtitle }) {
+  const { props, url } = usePage();
+  const user = props.auth?.user;
   const [notificaciones, setNotificaciones] = useState(null);
   const [mostrarToast, setMostrarToast] = useState(false);
+  const [abrirPanelNotificaciones, setAbrirPanelNotificaciones] = useState(false);
+
+  const TITULOS_POR_RUTA = useMemo(() => ([
+    { match: /^\/dashboard/, title: "Dashboard" },
+    { match: /^\/sellos\/pedidos\/nuevo-pedido/, title: "Nuevo Pedido" },
+    { match: /^\/sellos\/pedidos/, title: "Lista de Pedidos" },
+    { match: /^\/sellos\/tareas/, title: "Lista de Tareas" },
+    { match: /^\/sellos\/gestion\/todos/, title: "Todos los Sellos" },
+    { match: /^\/sellos\/gestion\/repetidos/, title: "Sellos Repetidos" },
+    { match: /^\/sellos\/gestion\/provincia/, title: "Sellos por Provincia" },
+    { match: /^\/metacrilatos\/pedidos/, title: "Pedidos de Metacrilatos" },
+    { match: /^\/metacrilatos\/tareas/, title: "Tareas de Metacrilatos" },
+    { match: /^\/metacrilatos/, title: "Metacrilatos" },
+    { match: /^\/envio-proveedores/, title: "Envio a Proveedores" },
+    { match: /^\/tareas-logistica/, title: "Tareas Pendientes" },
+    { match: /^\/incidencias/, title: "Incidencias" },
+    { match: /^\/plantilla-envio/, title: "Plantilla de Envio" },
+    { match: /^\/email/, title: "Envio Email" },
+  ]), []);
+
+  const tituloPorRuta = useMemo(() => {
+    const limpio = (url ?? "").split("?")[0];
+    return TITULOS_POR_RUTA.find((item) => item.match.test(limpio))?.title ?? "Panel";
+  }, [TITULOS_POR_RUTA, url]);
+  const tituloActual = title ?? tituloPorRuta;
+  const subtituloActual = subtitle ?? "Gestion operativa diaria";
 
   const storageKey = useMemo(
     () => `notificaciones-logistica-v1-${user?.id ?? "anon"}`,
@@ -34,22 +61,61 @@ export default function Layout({ children }) {
   const tareasSinFinalizar = notificaciones?.tareas?.sin_finalizar ?? 0;
   const pedidosAbiertos = notificaciones?.pedidos_abiertos?.total ?? 0;
   const tieneAvisos = tareasSinFinalizar > 0 || pedidosAbiertos > 0;
+  const totalAvisos = tareasSinFinalizar + pedidosAbiertos;
 
   return (
     <div className="flex">
       <Sidebar />
 
       <main className="ml-64 w-full p-6">
-        <div className="mb-6 flex justify-end">
-          <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-              <UserRound className="h-4 w-4" />
-            </span>
-            <span>{user?.name ?? "Usuario"}</span>
+        <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-slate-50 to-blue-50 px-4 py-3 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Herramientas Logistica</p>
+              <h1 className="truncate text-xl font-bold text-slate-900">{tituloActual}</h1>
+              <p className="truncate text-xs text-slate-500">{subtituloActual}</p>
+            </div>
+
+            <div className="relative flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAbrirPanelNotificaciones((prev) => !prev)}
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                aria-label="Abrir notificaciones"
+              >
+                <Bell className="h-5 w-5" />
+                {totalAvisos > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {totalAvisos > 99 ? "99+" : totalAvisos}
+                  </span>
+                )}
+              </button>
+
+              <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                  <UserRound className="h-4 w-4" />
+                </span>
+                <span>{user?.name ?? "Usuario"}</span>
+              </div>
+            </div>
           </div>
+
+          {abrirPanelNotificaciones && (
+            <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="font-semibold text-gray-800">Notificaciones</p>
+              <p className="mt-1 text-gray-600">
+                Tareas sin finalizar: <span className="font-bold">{tareasSinFinalizar}</span>
+              </p>
+              <p className="text-gray-600">
+                Pedidos abiertos fuera de tiempo: <span className="font-bold">{pedidosAbiertos}</span>
+              </p>
+            </div>
+          )}
         </div>
 
-        {children}
+        <div className="pt-3">
+          {children}
+        </div>
       </main>
 
       {mostrarToast && notificaciones && (

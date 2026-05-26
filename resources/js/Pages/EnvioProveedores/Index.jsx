@@ -43,7 +43,7 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
     };
 
     // 2. FUNCIÓN ENVIAR (Guarda con Axios y actualiza la lista de pendientes con Inertia)
-    const handleSubmit = (e) => {
+    const prepararBorradorEmail = (e) => {
         e.preventDefault();
         setEnviando(true);
 
@@ -54,18 +54,15 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
                     message: 'El pedido se ha creado y se abrira el PDF.',
                     tone: 'success',
                 });
-                
-                // Abre el PDF en una pestaña nueva automáticamente
+
                 window.open(route('envio-proveedores.pedidos.pdf', res.data.pedido_id), '_blank');
 
-                // Resetea el formulario al estado inicial
                 setForm({
                     proveedor_id: '',
                     colegio_veterinario_id: '',
                     lineas: [{ producto_id: '', unidades: 1 }]
                 });
 
-                // Sincroniza la columna de "Pedidos Pendientes" llamando al backend en segundo plano
                 router.reload({ only: ['pedidos'] });
             })
             .catch(err => {
@@ -81,7 +78,7 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
             });
     };
 
-    // Cambiar estado desde la tarjeta de seguimiento
+// Cambiar estado desde la tarjeta de seguimiento
     const handleCambiarEstado = async (id, nuevoEstado) => {
         const ok = await confirm({
             title: 'Cambiar estado',
@@ -130,7 +127,7 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
                                 <h3 className="text-xl font-bold text-slate-800">Nueva Orden de Pedido</h3>
                             </div>
                             
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                            <form onSubmit={prepararBorradorEmail} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     {/* SELECT PROVEEDOR */}
                                     <div>
@@ -245,7 +242,8 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
                                     ) : 'Generar y Emitir Orden de Pedido'}
                                 </button>
                             </form>
-                        </div>
+
+                            </div>
 
                         {/* COLUMNA SEGUIMIENTO (Pedidos Pendientes) */}
                         <div className="space-y-4 lg:sticky lg:top-6">
@@ -329,3 +327,5 @@ export default function Index({ proveedores, colegios, pedidos = [] }) {
         </Layout>
     );
 }
+
+

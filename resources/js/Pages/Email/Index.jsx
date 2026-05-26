@@ -1,185 +1,172 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useMemo, useState } from 'react';
+import Layout from '../../Template/LayaoutNav';
 import { useFeedbackModal } from '../../Hooks/useFeedbackModal';
-import MicrochipLoadingIcon from '../../Components/atoms/MicrochipLoadingIcon.jsx';
+import axios from 'axios';
 
-export default function EnvioPedidosModulo() {
+const PLANTILLAS = {
+    pedidos: {
+        asunto: 'Solicitud de confirmacion de pedido',
+        mensaje: 'Buenos dias,\n\nAdjuntamos el pedido para su revision y confirmacion.\n\nGracias.\nDepartamento de Logistica',
+        adjunto: 'Albaran PDF',
+    },
+    sellos: {
+        asunto: 'Notificacion operativa de sellos',
+        mensaje: 'Hola,\n\nTe compartimos el resumen operativo del modulo de sellos.\n\nUn saludo.\nDepartamento de Sellos',
+        adjunto: 'Resumen Sellos PDF',
+    },
+    metacrilatos: {
+        asunto: 'Notificacion operativa de metacrilatos',
+        mensaje: 'Hola,\n\nTe compartimos el resumen del modulo de metacrilatos.\n\nUn saludo.\nDepartamento de Metacrilatos',
+        adjunto: 'Resumen Metacrilatos PDF',
+    },
+};
+
+export default function EmailIndex() {
     const { feedbackModal, notify } = useFeedbackModal();
-    // Estados del formulario clásico
-    const [proveedorId, setProveedorId] = useState('');
-    const [colegioId, setColegioId] = useState('');
-    const [lineas, setLineas] = useState([{ producto_id: '', unidades: 1 }]);
+    const [modulo, setModulo] = useState('pedidos');
+    const [destinatario, setDestinatario] = useState('');
+    const [asunto, setAsunto] = useState(PLANTILLAS.pedidos.asunto);
+    const [mensaje, setMensaje] = useState(PLANTILLAS.pedidos.mensaje);
+    const [ultimoPedido, setUltimoPedido] = useState(null);
 
-    // 🔥 ESTADOS PARA EL MÓDULO DE CORREO INTELIGENTE
-    const [mostrarPrevisualizacion, setMostrarPrevisualizacion] = useState(false);
-    const [correoForm, setCorreoForm] = useState({
-        destinatario: '',
-        asunto: '',
-        mensaje: ''
-    });
-    const [cargando, setCargando] = useState(false);
+    const plantillaActiva = PLANTILLAS[modulo];
 
-    // 1. PASO PRIMERO: Generar la propuesta de correo (Pregunta al servidor por los datos limpios)
-    const prepararCorreo = async (e) => {
-        e.preventDefault();
-        setCargando(true);
+    const previewHtml = useMemo(() => {
+        return mensaje
+            .split('\n')
+            .map((linea) => linea.trim())
+            .filter(Boolean)
+            .map((linea, idx) => `<p key=${idx}>${linea}</p>`)
+            .join('');
+    }, [mensaje]);
 
-        try {
-            // Enviamos los datos actuales para que Laravel nos devuelva el borrador del correo
-            const response = await axios.post('/envio-proveedores/pedidos/preparar-borrador', {
-                proveedor_id: proveedorId,
-                colegio_veterinario_id: colegioId,
-                lineas: lineas
-            });
-
-            if (response.data.success) {
-                // Rellenamos el módulo de edición con la propuesta automática de Laravel
-                setCorreoForm({
-                    destinatario: response.data.borrador.destinatario,
-                    asunto: response.data.borrador.asunto,
-                    mensaje: response.data.borrador.mensaje // El texto con "Buenos días Victoria..."
-                });
-                setMostrarPrevisualizacion(true);
-            }
-        } catch (error) {
-            notify({
-                title: 'Error al generar borrador',
-                message: error.response?.data?.mensaje ?? 'No se pudo generar el borrador.',
-                tone: 'danger',
-            });
-        } finally {
-            setCargando(false);
-        }
+    const cambiarModulo = (nuevoModulo) => {
+        setModulo(nuevoModulo);
+        setAsunto(PLANTILLAS[nuevoModulo].asunto);
+        setMensaje(PLANTILLAS[nuevoModulo].mensaje);
+        setUltimoPedido(null);
     };
 
-    // 2. PASO SEGUNDO: Confirmar y enviar el correo definitivo (con los cambios del usuario)
-    const procesarEnvioDefinitivo = async () => {
-        setCargando(true);
-        try {
-            const response = await axios.post('/envio-proveedores/pedidos', {
-                proveedor_id: proveedorId,
-                colegio_veterinario_id: colegioId,
-                lineas: lineas,
-                // Le pasamos al controlador el texto final modificado por el usuario
-                email_manual: correoForm.destinatario,
-                email_asunto_custom: correoForm.asunto,
-                email_mensaje_custom: correoForm.mensaje 
-            });
+    useEffect(() => {
+        if (modulo !== 'sellos' && modulo !== 'metacrilatos') return;
 
-            if (response.data.success) {
-                await notify({
-                    title: 'Pedido enviado',
-                    message: response.data.mensaje,
-                    tone: 'success',
-                });
-                setMostrarPrevisualizacion(false); // Cerramos el panel
-            }
-        } catch (error) {
-            notify({
-                title: 'Error al enviar pedido',
-                message: error.response?.data?.mensaje ?? 'No se pudo enviar el pedido.',
-                tone: 'danger',
+        axios
+            .get('/email/ultimo-pedido', { params: { modulo } })
+            .then((res) => {
+                const pedido = res.data?.pedido ?? null;
+                setUltimoPedido(pedido);
+
+                if (pedido?.numero_pedido) {
+                    setAsunto((prev) => `${PLANTILLAS[modulo].asunto} #${pedido.numero_pedido}`);
+                    setMensaje((prev) =>
+                        `${PLANTILLAS[modulo].mensaje}\n\nPedido vinculado: #${pedido.numero_pedido}`
+                    );
+                }
+            })
+            .catch(() => {
+                setUltimoPedido(null);
             });
-        } finally {
-            setCargando(false);
-        }
+    }, [modulo]);
+
+    const simularEnvio = async () => {
+        await notify({
+            title: 'Borrador listo',
+            message: `Modulo: ${modulo}. Destinatario: ${destinatario || 'sin definir'}. Esta pantalla esta preparada para conectar el endpoint final cuando quieras.`,
+            tone: 'success',
+        });
     };
 
     return (
-        <div className="p-6 bg-slate-50 min-h-screen">
+        <Layout title="Envio Email" subtitle="Modulo independiente para componer correos por dominio">
             {feedbackModal}
-            <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
-                <h1 className="text-2xl font-bold text-slate-800 mb-6">📦 Emisión de Órdenes a Proveedores</h1>
-                
-                {/* Formulario de selección normal (Simplificado para el ejemplo) */}
-                <form onSubmit={prepararCorreo} className="space-y-4">
-                    {/* inputs de proveedor, colegio y líneas aquí... */}
-                    
-                    {!mostrarPrevisualizacion && (
-                        <button 
-                            type="submit" 
-                            disabled={cargando}
-                            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-medium transition"
-                        >
-                            {cargando ? (
-                                <span className="inline-flex items-center gap-2">
-                                    <MicrochipLoadingIcon size={18} label="Procesando datos" />
-                                    Procesando datos...
-                                </span>
-                            ) : 'Generar Propuesta de Pedido y Correo'}
-                        </button>
-                    )}
-                </form>
+            <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <section className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Compositor</h3>
 
-                {/* 🔥 INTERFAZ DEL MÓDULO DE CORREO (Se activa al recibir el borrador) */}
-                {mostrarPrevisualizacion && (
-                    <div className="mt-8 border-t pt-6 border-slate-200 animate-fadeIn">
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                            <h3 className="text-sm font-semibold text-amber-800 flex items-center">
-                                📝 Revisión del Mensaje Predeterminado
-                            </h3>
-                            <p className="text-xs text-amber-700 mt-1">
-                                El sistema ha redactado el correo automáticamente. Puedes modificar el texto o el destinatario antes del envío real. El Albarán PDF se adjuntará de forma transparente.
-                            </p>
+                    <div className="grid grid-cols-3 gap-2">
+                        {Object.keys(PLANTILLAS).map((key) => (
+                            <button
+                                key={key}
+                                type="button"
+                                onClick={() => cambiarModulo(key)}
+                                className={`rounded-xl px-3 py-2 text-sm font-semibold border transition ${
+                                    modulo === key
+                                        ? 'bg-blue-600 text-white border-blue-600'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                }`}
+                            >
+                                {key}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Destinatario</label>
+                        <input
+                            type="email"
+                            value={destinatario}
+                            onChange={(e) => setDestinatario(e.target.value)}
+                            placeholder="correo@proveedor.com"
+                            className="w-full rounded-xl border-slate-200 bg-white px-3 py-2.5 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Asunto</label>
+                        <input
+                            type="text"
+                            value={asunto}
+                            onChange={(e) => setAsunto(e.target.value)}
+                            className="w-full rounded-xl border-slate-200 bg-white px-3 py-2.5 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Mensaje</label>
+                        <textarea
+                            rows={10}
+                            value={mensaje}
+                            onChange={(e) => setMensaje(e.target.value)}
+                            className="w-full rounded-xl border-slate-200 bg-white px-3 py-2.5 text-sm"
+                        />
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                        Adjunto esperado para este modulo: <span className="font-bold">{plantillaActiva.adjunto}</span>
+                    </div>
+
+                    {(modulo === 'sellos' || modulo === 'metacrilatos') && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                            {ultimoPedido
+                                ? `Ultimo pedido detectado: #${ultimoPedido.numero_pedido} (${ultimoPedido.estado ?? 'sin estado'})`
+                                : 'No se encontro un pedido previo para este modulo.'}
                         </div>
+                    )}
 
-                        <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Destinatario</label>
-                                <input 
-                                    type="email" 
-                                    value={correoForm.destinatario}
-                                    onChange={(e) => setCorreoForm({...correoForm, destinatario: e.target.value})}
-                                    className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                />
-                            </div>
+                    <button
+                        type="button"
+                        onClick={simularEnvio}
+                        className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800"
+                    >
+                        Guardar borrador / Simular envio
+                    </button>
+                </section>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Asunto del Correo</label>
-                                <input 
-                                    type="text" 
-                                    value={correoForm.asunto}
-                                    onChange={(e) => setCorreoForm({...correoForm, asunto: e.target.value})}
-                                    className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                />
-                            </div>
+                <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Preview del email</h3>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Cuerpo del Mensaje</label>
-                                <textarea 
-                                    rows="8" 
-                                    value={correoForm.mensaje}
-                                    onChange={(e) => setCorreoForm({...correoForm, mensaje: e.target.value})}
-                                    className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono"
-                                />
-                            </div>
-
-                            <div className="flex justify-end space-x-3 pt-2">
-                                <button 
-                                    type="button"
-                                    onClick={() => setMostrarPrevisualizacion(false)}
-                                    className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-300 transition"
-                                >
-                                    Cancelar
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={procesarEnvioDefinitivo}
-                                    disabled={cargando}
-                                    className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 shadow transition"
-                                >
-                                    {cargando ? (
-                                        <span className="inline-flex items-center gap-2">
-                                            <MicrochipLoadingIcon size={18} label="Enviando correo" />
-                                            Enviando...
-                                        </span>
-                                    ) : '🚀 Confirmar y Enviar Correo con PDF'}
-                                </button>
-                            </div>
+                    <div className="rounded-xl border border-slate-200 p-4 bg-white">
+                        <span className="inline-block text-[10px] uppercase tracking-wider font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full mb-2">
+                            {modulo}
+                        </span>
+                        <h4 className="text-lg font-bold text-slate-900">{asunto || 'Sin asunto'}</h4>
+                        <div className="mt-3 text-sm text-slate-700 space-y-2" dangerouslySetInnerHTML={{ __html: previewHtml || '<p>Sin contenido.</p>' }} />
+                        <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-400">
+                            Este es un correo automatico, por favor no respondas directamente.
                         </div>
                     </div>
-                )}
+                </section>
             </div>
-        </div>
+        </Layout>
     );
 }
